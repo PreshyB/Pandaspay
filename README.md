@@ -10,9 +10,9 @@ market Nigeria.
   see `backend/README.md`. Implements the dual order/payment-protection
   state machine and the Model B (licensed-partner-custody) fund flow,
   against a mocked PalmPay provider until PalmPay's API docs are confirmed.
-- `web/` — React + TypeScript buyer/seller web app. Coming next, built
-  against the backend's API once the core order/payment slice is proven.
-- `mobile/` — React Native app. After web.
+- `web/` — React + TypeScript (Vite) buyer/seller web app, built against
+  the backend's API. See `web/README.md`.
+- `mobile/` — React Native app. Up next, after the web flow is proven.
 
 ## Build order (why backend-first)
 

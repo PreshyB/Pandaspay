@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CreateProductInput, ProductsService } from './products.service';
 
 @Controller('products')
@@ -8,6 +8,12 @@ export class ProductsController {
   @Post()
   create(@Body() input: CreateProductInput) {
     return this.productsService.create(input);
+  }
+
+  @Get()
+  list(@Query('sellerId') sellerId?: string) {
+    if (sellerId) return this.productsService.findBySeller(sellerId);
+    return [];
   }
 
   @Get(':slug')

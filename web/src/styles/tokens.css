@@ -1,0 +1,107 @@
+/*
+  Carried forward from the Pandas Pay wireframe redesign for visual
+  continuity, not reinvented here. Deep violet primary, Fraunces display
+  serif + IBM Plex Sans UI + IBM Plex Mono for data/reference labels
+  (waybill numbers, transaction refs) — a quieter, more "fintech ledger"
+  register than a generic SaaS palette, which fits a payment-protection
+  product. Semantic colors (protected / amber / alert) carry state, never
+  decoration.
+*/
+:root {
+  --paper: #f7f5fb;
+  --surface: #ffffff;
+  --ink: #17132c;
+  --ink-soft: #443e63;
+  --muted: #6b6582;
+  --line: #e4e0f0;
+  --line-strong: #d2cbe8;
+
+  --primary: #4a3a9c;
+  --primary-dark: #372b78;
+  --primary-soft: #edeafa;
+
+  --protected: #1b8a5c;
+  --protected-soft: #e3f5ec;
+
+  --amber: #c97e1f;
+  --amber-soft: #fcefda;
+
+  --alert: #b8452e;
+  --alert-soft: #fbe9e4;
+
+  --display: 'Fraunces', serif;
+  --ui: 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #151228;
+    --surface: #1d1936;
+    --ink: #f1eefa;
+    --ink-soft: #c7c0e0;
+    --muted: #9992be;
+    --line: #312a54;
+    --line-strong: #453b72;
+
+    --primary: #8879e8;
+    --primary-dark: #a79bf0;
+    --primary-soft: #241f44;
+
+    --protected: #4fcb92;
+    --protected-soft: #153427;
+
+    --amber: #e9ae5c;
+    --amber-soft: #3a2b10;
+
+    --alert: #e17a63;
+    --alert-soft: #3a2018;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #151228;
+  --surface: #1d1936;
+  --ink: #f1eefa;
+  --ink-soft: #c7c0e0;
+  --muted: #9992be;
+  --line: #312a54;
+  --line-strong: #453b72;
+
+  --primary: #8879e8;
+  --primary-dark: #a79bf0;
+  --primary-soft: #241f44;
+
+  --protected: #4fcb92;
+  --protected-soft: #153427;
+
+  --amber: #e9ae5c;
+  --amber-soft: #3a2b10;
+
+  --alert: #e17a63;
+  --alert-soft: #3a2018;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}

@@ -20,6 +20,18 @@ export class OrdersService {
     private readonly paymentsService: PaymentsService,
   ) {}
 
+  async findById(orderId: string): Promise<Order> {
+    return this.orders.findOneOrFail({ where: { id: orderId }, relations: ['items', 'payment'] });
+  }
+
+  async findForBuyer(buyerId: string): Promise<Order[]> {
+    return this.orders.find({ where: { buyerId }, relations: ['items', 'payment'], order: { createdAt: 'DESC' } });
+  }
+
+  async findForSeller(sellerId: string): Promise<Order[]> {
+    return this.orders.find({ where: { sellerId }, relations: ['items', 'payment'], order: { createdAt: 'DESC' } });
+  }
+
   /** Buyer places an order. Order starts at CREATED; a Payment row starts at AWAITING_PAYMENT. */
   async createOrder(dto: CreateOrderDto) {
     const currency = dto.currency ?? 'NGN';
