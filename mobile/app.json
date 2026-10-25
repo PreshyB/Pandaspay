@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Pandas Pay",
+    "slug": "pandaspay",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#F7F5FB"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pandaspay.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F5FB"
+      },
+      "package": "com.pandaspay.app"
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:3000"
+    }
+  }
+}

@@ -12,7 +12,8 @@ market Nigeria.
   against a mocked PalmPay provider until PalmPay's API docs are confirmed.
 - `web/` — React + TypeScript (Vite) buyer/seller web app, built against
   the backend's API. See `web/README.md`.
-- `mobile/` — React Native app. Up next, after the web flow is proven.
+- `mobile/` — React Native (Expo + TypeScript) buyer/seller app, mirroring
+  `web/`'s flows against the same backend API. See `mobile/README.md`.
 
 ## Build order (why backend-first)
 
