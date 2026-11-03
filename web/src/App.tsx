@@ -1,4 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
+import { BrandMark } from './components/BrandMark';
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import OrderStatusPage from './pages/OrderStatusPage';
@@ -9,11 +10,14 @@ export default function App() {
   return (
     <div className="shell">
       <header className="topbar">
-        <NavLink to="/" className="topbar__mark">
-          Pandas Pay
+        <NavLink to="/" className="brand" aria-label="BuyBridge home">
+          <BrandMark size={30} />
+          <span className="brand__name">BuyBridge</span>
         </NavLink>
-        <nav className="topbar__nav">
-          <NavLink to="/seller">Seller dashboard</NavLink>
+        <nav className="topbar__nav" aria-label="Seller">
+          <NavLink to="/seller" end>
+            Seller dashboard
+          </NavLink>
           <NavLink to="/seller/new-product">List a product</NavLink>
         </nav>
       </header>
@@ -26,6 +30,10 @@ export default function App() {
           <Route path="/seller/new-product" element={<SellerNewProductPage />} />
         </Routes>
       </main>
+      <footer className="footer">
+        <span>BuyBridge holds your payment until delivery is confirmed.</span>
+        <span>Test mode: payments are simulated and no real money moves.</span>
+      </footer>
     </div>
   );
 }

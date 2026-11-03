@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Order, Payment } from '../api/types';
+import { OrderSpan, statusNotice } from '../components/OrderSpan';
 import { StatusBadges } from '../components/StatusBadges';
 import { formatMoney } from '../lib/money';
 import { useDevIdentity } from '../lib/useDevIdentity';
@@ -39,67 +40,92 @@ export default function OrderStatusPage() {
     }
   }
 
-  if (error && !order) return <p className="error">{error}</p>;
+  if (error && !order) {
+    return (
+      <div className="card empty">
+        <h1>We can't open that order</h1>
+        <p>{error}</p>
+        <Link className="btn" to="/">
+          Back to home
+        </Link>
+      </div>
+    );
+  }
   if (!order) return <p className="muted">Loading order…</p>;
 
   const { payment } = order;
   const canSimulatePayment = payment.protectionStatus === 'AWAITING_PAYMENT' && payment.providerTransactionRef;
   const canConfirmDelivered = order.status === 'SHIPPED' || order.status === 'IN_TRANSIT';
   const canDispute = payment.protectionStatus === 'PROTECTED' || payment.protectionStatus === 'RELEASABLE';
+  const notice = statusNotice(order.status, payment.protectionStatus);
 
   return (
-    <div>
-      <h1>Order</h1>
-      <p className="mono">{order.id}</p>
-
-      <div className="card">
-        <StatusBadges orderStatus={order.status} paymentStatus={payment.protectionStatus} />
-
-        <div style={{ marginTop: '1.5rem' }}>
-          <strong style={{ fontSize: '1.125rem' }}>{formatMoney(order.totalMinor, order.currency)}</strong>
+    <div className="order">
+      <div className="order__head">
+        <div>
+          <h1>Order</h1>
+          <p className="mono">{order.id}</p>
+        </div>
+        <div className="order__sum">
+          <div className="order__total">{formatMoney(order.totalMinor, order.currency)}</div>
           <p className="muted">
             {order.items.length} item{order.items.length === 1 ? '' : 's'}
           </p>
         </div>
+      </div>
+
+      <div className="panel">
+        <OrderSpan orderStatus={order.status} paymentStatus={payment.protectionStatus} />
+
+        {notice && <p className={`notice notice--${notice.tone}`}>{notice.text}</p>}
+
+        <div className="order__badges">
+          <StatusBadges orderStatus={order.status} paymentStatus={payment.protectionStatus} />
+        </div>
 
         {error && <p className="error">{error}</p>}
 
-        <div className="row" style={{ marginTop: '1.25rem' }}>
-          {canSimulatePayment && (
+        {canSimulatePayment && (
+          <div className="testbar">
+            <span>Test mode: the payment provider is simulated.</span>
             <button
               className="btn btn--secondary"
               disabled={busy}
               onClick={() => run(() => api.simulatePaymentConfirmed(payment.providerTransactionRef!))}
             >
-              Simulate PalmPay payment confirmation
+              Simulate payment confirmation
             </button>
-          )}
+          </div>
+        )}
 
-          {canConfirmDelivered && (
-            <button className="btn" disabled={busy} onClick={() => run(() => api.confirmDelivered(order.id, 'BUYER'))}>
-              I've received this order
-            </button>
-          )}
+        {(canConfirmDelivered || (order.status === 'CREATED' && buyer) || (canDispute && !showDisputeForm)) && (
+          <div className="order__actions">
+            {canConfirmDelivered && (
+              <button className="btn" disabled={busy} onClick={() => run(() => api.confirmDelivered(order.id, 'BUYER'))}>
+                I've received this order
+              </button>
+            )}
 
-          {order.status === 'CREATED' && buyer && (
-            <button
-              className="btn btn--outline"
-              disabled={busy}
-              onClick={() => run(() => api.cancelOrder(order.id, buyer.id))}
-            >
-              Cancel order
-            </button>
-          )}
+            {order.status === 'CREATED' && buyer && (
+              <button
+                className="btn btn--outline"
+                disabled={busy}
+                onClick={() => run(() => api.cancelOrder(order.id, buyer.id))}
+              >
+                Cancel order
+              </button>
+            )}
 
-          {canDispute && !showDisputeForm && (
-            <button className="btn btn--outline" onClick={() => setShowDisputeForm(true)}>
-              Report a problem
-            </button>
-          )}
-        </div>
+            {canDispute && !showDisputeForm && (
+              <button className="btn btn--outline" onClick={() => setShowDisputeForm(true)}>
+                Report a problem
+              </button>
+            )}
+          </div>
+        )}
 
         {showDisputeForm && (
-          <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--line)', paddingTop: '1.25rem' }}>
+          <div className="dispute">
             <div className="field">
               <label htmlFor="reason">What went wrong?</label>
               <textarea
@@ -107,29 +133,34 @@ export default function OrderStatusPage() {
                 rows={3}
                 value={disputeReason}
                 onChange={(e) => setDisputeReason(e.target.value)}
-                placeholder="e.g. item doesn't match the listing"
+                placeholder="e.g. the item doesn't match the listing"
               />
             </div>
-            <button
-              className="btn btn--danger"
-              disabled={busy || !disputeReason.trim() || !buyer}
-              onClick={() =>
-                run(async () => {
-                  await api.openDispute(payment.id, buyer!.id, disputeReason.trim());
-                  setShowDisputeForm(false);
-                  setDisputeReason('');
-                })
-              }
-            >
-              Open dispute — freezes the payment
-            </button>
+            <div className="row">
+              <button
+                className="btn btn--danger"
+                disabled={busy || !disputeReason.trim() || !buyer}
+                onClick={() =>
+                  run(async () => {
+                    await api.openDispute(payment.id, buyer!.id, disputeReason.trim());
+                    setShowDisputeForm(false);
+                    setDisputeReason('');
+                  })
+                }
+              >
+                Open dispute and freeze the payment
+              </button>
+              <button className="btn btn--outline" onClick={() => setShowDisputeForm(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         )}
 
         {payment.protectionStatus === 'PROTECTED' && (
-          <p className="muted" style={{ marginTop: '1.25rem' }}>
-            Your payment is protected according to the transaction terms. It stays protected until delivery is
-            confirmed, then a short protection window before the seller is paid.
+          <p className="muted" style={{ marginTop: '1.25rem', marginBottom: 0 }}>
+            Your payment stays protected until delivery is confirmed. After that, a short protection window runs
+            before the seller is paid.
           </p>
         )}
       </div>

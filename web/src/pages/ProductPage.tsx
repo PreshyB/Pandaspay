@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Product } from '../api/types';
 import { formatMoney } from '../lib/money';
 import { useDevIdentity } from '../lib/useDevIdentity';
+
+function Tick() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+      <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export default function ProductPage() {
   const { slug = '' } = useParams();
@@ -21,7 +29,7 @@ export default function ProductPage() {
     api
       .getProductBySlug(slug)
       .then(setProduct)
-      .catch(() => setError('Product not found — check the link and try again.'));
+      .catch(() => setError('Product not found. Check the link and try again.'));
   }, [slug]);
 
   async function handleBuyNow() {
@@ -47,20 +55,30 @@ export default function ProductPage() {
     }
   }
 
-  if (error && !product) return <p className="error">{error}</p>;
+  if (error && !product) {
+    return (
+      <div className="card empty">
+        <h1>We can't find that product</h1>
+        <p>{error}</p>
+        <Link className="btn" to="/">
+          Enter another product code
+        </Link>
+      </div>
+    );
+  }
   if (!product) return <p className="muted">Loading product…</p>;
 
   return (
-    <div>
-      <h1>{product.title}</h1>
-      <p>{product.description || 'No description provided.'}</p>
-      <div className="card">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <strong style={{ fontSize: '1.25rem' }}>{formatMoney(product.priceMinor, product.currency)}</strong>
-          <span className="muted">{product.stockQuantity} in stock</span>
-        </div>
+    <div className="product">
+      <div>
+        <h1>{product.title}</h1>
+        <p className="product__price">{formatMoney(product.priceMinor, product.currency)}</p>
+        <p className="muted">{product.stockQuantity} in stock</p>
+        <p className="product__desc">{product.description || 'The seller has not added a description.'}</p>
+      </div>
 
-        <div className="field" style={{ marginTop: '1.25rem' }}>
+      <aside className="buybox" aria-label="Buy this product">
+        <div className="field">
           <label htmlFor="qty">Quantity</label>
           <input
             id="qty"
@@ -76,11 +94,18 @@ export default function ProductPage() {
           <>
             <div className="field">
               <label htmlFor="name">Your name</label>
-              <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+              <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" autoComplete="name" />
             </div>
             <div className="field">
               <label htmlFor="email">Your email</label>
-              <input id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
             </div>
           </>
         )}
@@ -88,16 +113,28 @@ export default function ProductPage() {
         {error && <p className="error">{error}</p>}
 
         <button
-          className="btn"
+          className="btn btn--lg btn--block"
           onClick={handleBuyNow}
           disabled={placing || (!buyer && (!name || !email))}
         >
-          {placing ? 'Placing order…' : 'Buy now — payment protected'}
+          {placing ? 'Placing order…' : 'Buy with protection'}
         </button>
-        <p className="muted" style={{ marginTop: '0.75rem' }}>
-          Your payment is protected until delivery is confirmed.
-        </p>
-      </div>
+
+        <ul className="assure">
+          <li>
+            <Tick />
+            You pay BuyBridge, not the seller.
+          </li>
+          <li>
+            <Tick />
+            The seller ships once your payment is held.
+          </li>
+          <li>
+            <Tick />
+            The seller is paid after you confirm delivery.
+          </li>
+        </ul>
+      </aside>
     </div>
   );
 }
