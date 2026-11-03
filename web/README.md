@@ -1,4 +1,4 @@
-# Pandas Pay — Web
+# BuyBridge — Web
 
 React + TypeScript (Vite) buyer/seller web app, built against the backend
 API in `../backend`.
@@ -35,8 +35,16 @@ app doesn't need to change.
 
 ## Design
 
-Carries forward the palette, type system (Fraunces display serif, IBM Plex
-Sans UI, IBM Plex Mono for reference/data labels) and semantic state colors
-from the earlier wireframe redesign exploration, defined in
-`src/styles/tokens.css`. Dark mode follows `prefers-color-scheme`
+Brand violet, type (Fraunces display serif and wordmark, IBM Plex Sans UI,
+IBM Plex Mono for order ids, waybill numbers and links) and semantic state
+colors are defined in `src/styles/tokens.css`; layout lives in
+`src/styles/layout.css`. Dark mode follows `prefers-color-scheme`
 automatically.
+
+The mark is the letter B built from a pylon stem and two suspension-cable
+arcs (`src/components/BrandMark.tsx`, `public/favicon.svg`). The home page
+shows a tied-arch bridge with the buyer's payment held beneath it, and every
+order page shows the same idea as a five-stop progress bar
+(`src/components/OrderSpan.tsx`). That bar summarises the order; the two
+status badges stay the source of truth for the order and payment state
+machines.

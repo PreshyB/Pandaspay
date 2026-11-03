@@ -1,37 +1,37 @@
 /*
-  Carried forward from the Pandas Pay wireframe redesign for visual
-  continuity, not reinvented here. Deep violet primary, Fraunces display
-  serif + IBM Plex Sans UI + IBM Plex Mono for data/reference labels
-  (waybill numbers, transaction refs) — a quieter, more "fintech ledger"
-  register than a generic SaaS palette, which fits a payment-protection
-  product. Semantic colors (protected / amber / alert) carry state, never
-  decoration.
+  BuyBridge design tokens.
+
+  Brand violet carries the identity (it matches the B mark). Fraunces is the
+  display face and the wordmark, IBM Plex Sans is the interface, IBM Plex Mono
+  is reserved for references people copy or read out (order ids, waybill
+  numbers, links). Semantic colors (protected / amber / alert) describe the
+  state of money and delivery, never decoration.
 */
 :root {
   --paper: #f7f5fb;
   --surface: #ffffff;
   --ink: #17132c;
   --ink-soft: #443e63;
-  --muted: #6b6582;
+  --muted: #655f7d;
   --line: #e4e0f0;
-  --line-strong: #d2cbe8;
+  --line-strong: #cfc8e6;
 
   --primary: #4a3a9c;
   --primary-dark: #372b78;
   --primary-soft: #edeafa;
 
-  --protected: #1b8a5c;
+  --protected: #1b7a53;
   --protected-soft: #e3f5ec;
 
-  --amber: #c97e1f;
+  --amber: #a8650f;
   --amber-soft: #fcefda;
 
   --alert: #b8452e;
   --alert-soft: #fbe9e4;
 
-  --display: 'Fraunces', serif;
-  --ui: 'IBM Plex Sans', sans-serif;
-  --mono: 'IBM Plex Mono', monospace;
+  --display: 'Fraunces', Georgia, serif;
+  --ui: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -44,7 +44,7 @@
     --surface: #1d1936;
     --ink: #f1eefa;
     --ink-soft: #c7c0e0;
-    --muted: #9992be;
+    --muted: #a39dc8;
     --line: #312a54;
     --line-strong: #453b72;
 
@@ -58,7 +58,7 @@
     --amber: #e9ae5c;
     --amber-soft: #3a2b10;
 
-    --alert: #e17a63;
+    --alert: #e98b76;
     --alert-soft: #3a2018;
   }
 }
@@ -68,7 +68,7 @@
   --surface: #1d1936;
   --ink: #f1eefa;
   --ink-soft: #c7c0e0;
-  --muted: #9992be;
+  --muted: #a39dc8;
   --line: #312a54;
   --line-strong: #453b72;
 
@@ -82,7 +82,7 @@
   --amber: #e9ae5c;
   --amber-soft: #3a2b10;
 
-  --alert: #e17a63;
+  --alert: #e98b76;
   --alert-soft: #3a2018;
 }
 
@@ -90,11 +90,16 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--ui);
+  font-size: 1rem;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -102,6 +107,30 @@ a {
   color: inherit;
 }
 
-button {
+button,
+input,
+textarea {
   font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
