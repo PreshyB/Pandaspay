@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { SellerDelivery } from '../api/types';
-import { feeLabel, isWithinState, optionLabel, speedLabel, windowLabel, zoneLabel } from '../lib/delivery';
+import { feeLabel, isSameCity, isWithinState, optionLabel, speedLabel, windowLabel, zoneLabel } from '../lib/delivery';
 import { registerAccount, useAccount } from '../lib/account';
 import { lineKey, removeLines } from '../lib/cart';
 import { clearDraft, loadDraft, type CheckoutDraft } from '../lib/checkout';
@@ -71,8 +71,10 @@ export default function CheckoutPage() {
 
   const storeState = delivery?.storeState ?? null;
   const within = draft.state ? isWithinState(draft.state, storeState) : null;
-  const zoneOptions =
-    delivery && draft.state ? delivery.options.filter((o) => o.zone === (within ? 'WITHIN_STATE' : 'OUTSIDE_STATE')) : [];
+  const sameCity = draft.state ? isSameCity(draft.state, draft.city, storeState, delivery?.storeCity ?? null) : false;
+  const inZone = (z: string) => delivery && draft.state ? delivery.options.filter((o) => o.zone === z) : [];
+  // A buyer in the seller's city sees the same-city options if the seller set any, otherwise the state ones.
+  const zoneOptions = sameCity && inZone('SAME_CITY').length > 0 ? inZone('SAME_CITY') : inZone(within ? 'WITHIN_STATE' : 'OUTSIDE_STATE');
   const chosen = zoneOptions.find((o) => o.id === optionId && o.isActive) ?? null;
   const deliveryFee = chosen ? BigInt(chosen.feeMinor) : BigInt(0);
 
@@ -222,7 +224,7 @@ export default function CheckoutPage() {
                           onChange={() => setOptionId(o.id)}
                         />
                         <span>
-                          {speedLabel(o.speed)} · {zoneLabel(o.zone, storeState)}
+                          {speedLabel(o.speed)} · {zoneLabel(o.zone, storeState, delivery?.storeCity)}
                           <small>{o.isActive ? windowLabel(o.minHours, o.maxHours) : 'Unavailable right now'}</small>
                         </span>
                         <b>{feeLabel(o.feeMinor, currency)}</b>

@@ -12,6 +12,7 @@ import { User } from '../users/user.entity';
 
 /** Where the buyer is, relative to the seller's registered store state. */
 export enum DeliveryZone {
+  SAME_CITY = 'SAME_CITY',
   WITHIN_STATE = 'WITHIN_STATE',
   OUTSIDE_STATE = 'OUTSIDE_STATE',
 }

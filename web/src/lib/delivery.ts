@@ -20,8 +20,9 @@ export function windowLabel(min: number, max: number): string {
 
 export const speedLabel = (s: DeliverySpeed) => (s === 'EXPRESS' ? 'Express' : 'Standard');
 
-export function zoneLabel(zone: DeliveryZone, storeState: string | null): string {
+export function zoneLabel(zone: DeliveryZone, storeState: string | null, storeCity?: string | null): string {
   const state = storeState ?? 'your state';
+  if (zone === 'SAME_CITY') return `Same city${storeCity ? ` (${storeCity})` : ''}`;
   return zone === 'WITHIN_STATE' ? `Within ${state}` : `Outside ${state}`;
 }
 
@@ -33,6 +34,11 @@ export function optionLabel(o: Pick<DeliveryOption, 'zone' | 'speed' | 'minHours
   return `${speedLabel(o.speed)} · ${zoneLabel(o.zone, storeState)} · ${windowLabel(o.minHours, o.maxHours)}`;
 }
 
+/** Is the buyer in the same city as the store (and the same state)? */
+export function isSameCity(buyerState: string, buyerCity: string, storeState: string | null, storeCity: string | null): boolean {
+  return isWithinState(buyerState, storeState) && !!storeCity && buyerCity.trim().toLowerCase() === storeCity.trim().toLowerCase();
+}
+
 /** Is the buyer's state the same as the seller's store state? */
 export function isWithinState(buyerState: string, storeState: string | null): boolean {
   return !!storeState && buyerState.trim().toLowerCase() === storeState.trim().toLowerCase();
@@ -40,5 +46,5 @@ export function isWithinState(buyerState: string, storeState: string | null): bo
 
 /** For an order that no longer has the seller's live setup in hand. */
 export function snapshotLabel(o: { zone: DeliveryZone; speed: DeliverySpeed; minHours: number; maxHours: number }): string {
-  return `${speedLabel(o.speed)} · ${o.zone === 'WITHIN_STATE' ? "Seller's state" : 'Other state'} · ${windowLabel(o.minHours, o.maxHours)}`;
+  return `${speedLabel(o.speed)} · ${o.zone === 'SAME_CITY' ? "Seller's city" : o.zone === 'WITHIN_STATE' ? "Seller's state" : 'Other state'} · ${windowLabel(o.minHours, o.maxHours)}`;
 }

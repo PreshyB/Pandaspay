@@ -138,7 +138,7 @@ export default function SellerDeliveryPage() {
                   <li key={o.id} className={`zone${o.isActive ? '' : ' zone--off'}`}>
                     <div>
                       <strong>
-                        {zoneLabel(o.zone, storeState)} · {speedLabel(o.speed)}
+                        {zoneLabel(o.zone, storeState, info.storeCity)} · {speedLabel(o.speed)}
                       </strong>
                       <span>{windowLabel(o.minHours, o.maxHours)}</span>
                     </div>
@@ -181,10 +181,10 @@ export default function SellerDeliveryPage() {
                 <fieldset className="choices">
                   <legend>Zone</legend>
                   <div className="choices__row">
-                    {(['WITHIN_STATE', 'OUTSIDE_STATE'] as DeliveryZone[]).map((z) => (
+                    {(['SAME_CITY', 'WITHIN_STATE', 'OUTSIDE_STATE'] as DeliveryZone[]).filter((z) => z !== 'SAME_CITY' || !!info.storeCity).map((z) => (
                       <label key={z} className={`chip${zone === z ? ' chip--on' : ''}`}>
                         <input type="radio" name="zone" checked={zone === z} onChange={() => setZone(z)} />
-                        {zoneLabel(z, storeState)}
+                        {zoneLabel(z, storeState, info.storeCity)}
                       </label>
                     ))}
                   </div>
@@ -259,7 +259,7 @@ export default function SellerDeliveryPage() {
             {info.options.map((o) => (
               <li key={o.id} className={o.isActive ? '' : 'opts__off'}>
                 <span>
-                  {speedLabel(o.speed)} · {zoneLabel(o.zone, storeState)} · {windowLabel(o.minHours, o.maxHours)}
+                  {speedLabel(o.speed)} · {zoneLabel(o.zone, storeState, info.storeCity)} · {windowLabel(o.minHours, o.maxHours)}
                   {!o.isActive && <em> — unavailable</em>}
                 </span>
                 <b>{feeLabel(o.feeMinor)}</b>

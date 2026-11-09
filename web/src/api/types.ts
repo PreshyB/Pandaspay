@@ -39,7 +39,7 @@ export interface Product {
   isActive: boolean;
 }
 
-export type DeliveryZone = 'WITHIN_STATE' | 'OUTSIDE_STATE';
+export type DeliveryZone = 'SAME_CITY' | 'WITHIN_STATE' | 'OUTSIDE_STATE';
 export type DeliverySpeed = 'STANDARD' | 'EXPRESS';
 
 export interface DeliveryOption {

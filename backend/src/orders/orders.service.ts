@@ -101,8 +101,17 @@ export class OrdersService {
       if (!option.isActive) throw new BadRequestException('That delivery option is paused by the seller');
       const seller = await this.users.findOneBy({ id: dto.sellerId });
       const buyerState = typeof dto.deliveryAddress?.state === 'string' ? dto.deliveryAddress.state : undefined;
+      const buyerCity = typeof dto.deliveryAddress?.city === 'string' ? dto.deliveryAddress.city : undefined;
       const within = sameState(buyerState, seller?.storeState);
-      if ((option.zone === DeliveryZone.WITHIN_STATE) !== within) {
+      const sameCity =
+        within && !!buyerCity && !!seller?.storeCity && buyerCity.trim().toLowerCase() === seller.storeCity.trim().toLowerCase();
+      const covers =
+        option.zone === DeliveryZone.OUTSIDE_STATE
+          ? !within
+          : option.zone === DeliveryZone.WITHIN_STATE
+            ? within
+            : sameCity;
+      if (!covers) {
         throw new BadRequestException('That delivery option does not cover your delivery address');
       }
       deliveryFee = BigInt(option.feeMinor);
