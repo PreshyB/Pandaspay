@@ -1,4 +1,4 @@
-import type { CreateOrderResponse, DeliveryOption, DeliverySpeed, DeliveryZone, Order, Payment, Product, SellerDelivery } from './types';
+import type { CreateOrderResponse, Dispute, DeliveryOption, DeliverySpeed, DeliveryZone, Order, Payment, Product, SellerDelivery } from './types';
 
 // Empty in dev (vite.config.ts proxies /api to the backend). Set
 // VITE_API_BASE_URL at build time to point a production build at a
@@ -49,6 +49,22 @@ export const api = {
       body: JSON.stringify({ isActive }),
     }),
 
+  listDisputes: () => request<Dispute[]>('/disputes'),
+  getDispute: (id: string) => request<Dispute | null>(`/disputes/${id}`),
+  resolveDispute: (
+    id: string,
+    decision: { kind: 'seller' | 'buyer' } | { kind: 'split'; releaseMinor: string; refundMinor: string },
+    notes: string,
+  ) => {
+    const body: Record<string, unknown> = { resolvedById: 'admin-test', notes };
+    if (decision.kind === 'split') {
+      body.releaseMinor = decision.releaseMinor;
+      body.refundMinor = decision.refundMinor;
+      body.sellerPayoutDestination = { note: 'placeholder: payout destinations are not stored yet' };
+    }
+    return request<Dispute>(`/disputes/${id}/resolve-${decision.kind}`, { method: 'PATCH', body: JSON.stringify(body) });
+  },
+
   getProductBySlug: (slug: string) => request<Product>(`/products/${slug}`),
 
   createProduct: (input: {
@@ -59,6 +75,7 @@ export const api = {
     stockQuantity?: number;
     brand?: string;
     options?: { name: string; values: string[] }[];
+    skus?: { attributes: Record<string, string>; stockQuantity: number }[];
   }) => request<Product>('/products', { method: 'POST', body: JSON.stringify(input) }),
 
   createOrder: (input: {

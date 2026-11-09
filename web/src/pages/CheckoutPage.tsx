@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Product, SellerDelivery } from '../api/types';
+import type { SellerDelivery } from '../api/types';
 import { feeLabel, isWithinState, optionLabel, speedLabel, windowLabel, zoneLabel } from '../lib/delivery';
 import { registerAccount, useAccount } from '../lib/account';
-import { loadSelection, type Selection } from '../lib/checkout';
+import { lineKey, removeLines } from '../lib/cart';
+import { clearDraft, loadDraft, type CheckoutDraft } from '../lib/checkout';
 import { formatMoney } from '../lib/money';
 import { NIGERIAN_STATES } from '../lib/states';
 
@@ -20,12 +21,9 @@ interface Address {
 const STEPS = ['Account', 'Delivery', 'Pay'];
 
 export default function CheckoutPage() {
-  const { slug = '' } = useParams();
   const navigate = useNavigate();
   const { user, loading } = useAccount();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [selection] = useState<Selection | null>(() => loadSelection(slug));
-  const [loadError, setLoadError] = useState(false);
+  const [draftLoaded] = useState<CheckoutDraft | null>(() => loadDraft());
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,50 +38,36 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!draftLoaded) return;
     api
-      .getProductBySlug(slug)
-      .then(setProduct)
-      .catch(() => setLoadError(true));
-  }, [slug]);
-
-  useEffect(() => {
-    if (!product) return;
-    api
-      .getSellerDelivery(product.sellerId)
+      .getSellerDelivery(draftLoaded.sellerId)
       .then(setDelivery)
       .catch(() => setError('Could not load this seller\'s delivery options.'));
-  }, [product]);
+  }, [draftLoaded]);
 
   useEffect(() => {
     if (user) setDraft((d) => ({ ...d, recipientName: d.recipientName || user.fullName }));
   }, [user]);
 
-  if (loadError) {
-    return (
-      <div className="card empty">
-        <h1>We can't find that product</h1>
-        <Link className="btn" to="/">
-          Back to home
-        </Link>
-      </div>
-    );
-  }
-  if (loading || !product) return <p className="muted">Loading…</p>;
+  if (loading) return <p className="muted">Loading…</p>;
 
-  if (!selection) {
+  if (!draftLoaded || draftLoaded.lines.length === 0) {
     return (
       <div className="card empty">
-        <h1>Choose your options first</h1>
-        <p>We need your colour, size or quantity before checkout.</p>
-        <Link className="btn" to={`/p/${slug}`}>
-          Back to the product
+        <h1>Nothing to check out yet</h1>
+        <p>Choose a product and its options first, or open your cart.</p>
+        <Link className="btn" to="/cart">
+          Open cart
         </Link>
       </div>
     );
   }
+
+  const draft0 = draftLoaded;
+  const currency = draft0.lines[0].currency;
+  const subtotal = draft0.lines.reduce((n, l) => n + BigInt(l.priceMinor) * BigInt(l.quantity), BigInt(0));
 
   const step = !user ? 0 : !address ? 1 : 2;
-  const subtotal = BigInt(product.priceMinor) * BigInt(selection.quantity);
 
   const storeState = delivery?.storeState ?? null;
   const within = draft.state ? isWithinState(draft.state, storeState) : null;
@@ -111,17 +95,19 @@ export default function CheckoutPage() {
   }
 
   async function pay() {
-    if (!user || !address || !product || !chosen) return;
+    if (!user || !address || !chosen) return;
     setBusy(true);
     setError(null);
     try {
       const { order } = await api.createOrder({
         buyerId: user.id,
-        sellerId: product.sellerId,
-        items: [{ productId: product.id, quantity: selection!.quantity, variant: selection!.variant }],
+        sellerId: draft0.sellerId,
+        items: draft0.lines.map((l) => ({ productId: l.productId, quantity: l.quantity, variant: l.variant })),
         deliveryOptionId: chosen?.id,
         deliveryAddress: { ...address },
       });
+      if (draft0.source === 'cart') removeLines(draft0.lines.map((l) => lineKey(l)));
+      clearDraft();
       navigate(`/orders/${order.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not place the order. Try again.');
@@ -130,8 +116,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const picked = Object.entries(selection.variant);
-
+  
   return (
     <div className="co">
       <div>
@@ -240,7 +225,7 @@ export default function CheckoutPage() {
                           {speedLabel(o.speed)} · {zoneLabel(o.zone, storeState)}
                           <small>{o.isActive ? windowLabel(o.minHours, o.maxHours) : 'Unavailable right now'}</small>
                         </span>
-                        <b>{feeLabel(o.feeMinor, product.currency)}</b>
+                        <b>{feeLabel(o.feeMinor, currency)}</b>
                       </label>
                     ))}
                   </div>
@@ -268,7 +253,7 @@ export default function CheckoutPage() {
             {chosen && (
               <p className="eta" style={{ marginBottom: '1rem' }}>
                 <strong>{optionLabel(chosen, storeState)}</strong>
-                {feeLabel(chosen.feeMinor, product.currency)} delivery. You'll see an expected-by date once the seller ships.
+                {feeLabel(chosen.feeMinor, currency)} delivery. You'll see an expected-by date once the seller ships.
               </p>
             )}
 
@@ -292,27 +277,34 @@ export default function CheckoutPage() {
 
       <aside className="buybox" aria-label="Order summary">
         <h2>Your order</h2>
-        {product.brand && <p className="eyebrow" style={{ marginBottom: '0.25rem' }}>{product.brand}</p>}
-        <p className="co__item">{product.title}</p>
-        {picked.length > 0 && (
-          <ul className="co__opts">
-            {picked.map(([k, v]) => (
-              <li key={k}>
-                {k}: <strong>{v}</strong>
-              </li>
-            ))}
-          </ul>
-        )}
+        {draft0.lines.map((l) => (
+          <div key={lineKey(l)} className="co__line">
+            {l.brand && <p className="eyebrow" style={{ marginBottom: '0.25rem' }}>{l.brand}</p>}
+            <p className="co__item">
+              {l.title} <span className="muted">× {l.quantity}</span>
+            </p>
+            {Object.keys(l.variant).length > 0 && (
+              <ul className="co__opts">
+                {Object.entries(l.variant).map(([k, v]) => (
+                  <li key={k}>
+                    {k}: <strong>{v}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="muted" style={{ margin: 0 }}>
+              {formatMoney((BigInt(l.priceMinor) * BigInt(l.quantity)).toString(), l.currency)}
+            </p>
+          </div>
+        ))}
         <dl className="sum">
           <div>
-            <dt>
-              {formatMoney(product.priceMinor, product.currency)} × {selection.quantity}
-            </dt>
-            <dd>{formatMoney(subtotal.toString(), product.currency)}</dd>
+            <dt>Subtotal</dt>
+            <dd>{formatMoney(subtotal.toString(), currency)}</dd>
           </div>
           <div>
             <dt>Delivery</dt>
-            <dd className={chosen ? '' : 'muted'}>{chosen ? feeLabel(chosen.feeMinor, product.currency) : 'Choose at delivery'}</dd>
+            <dd className={chosen ? '' : 'muted'}>{chosen ? feeLabel(chosen.feeMinor, currency) : 'Choose at delivery'}</dd>
           </div>
           <div>
             <dt>BuyBridge protection</dt>
@@ -323,13 +315,13 @@ export default function CheckoutPage() {
               <dt>
                 <strong>Total</strong>
               </dt>
-              <dd>{formatMoney((subtotal + deliveryFee).toString(), product.currency)}</dd>
+              <dd>{formatMoney((subtotal + deliveryFee).toString(), currency)}</dd>
             </div>
           )}
         </dl>
         <p className="gs__fine">The final amount is calculated by BuyBridge when you place the order.</p>
-        <Link className="link" to={`/p/${slug}`}>
-          Change options
+        <Link className="link" to={draft0.source === 'cart' ? '/cart' : `/p/${draft0.lines[0].slug}`}>
+          {draft0.source === 'cart' ? 'Back to cart' : 'Change options'}
         </Link>
       </aside>
     </div>

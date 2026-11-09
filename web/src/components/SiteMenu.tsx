@@ -69,6 +69,9 @@ export function SiteMenu() {
           <Link className="menu__item" to="/#find">
             Enter a product code
           </Link>
+          <Link className="menu__item" to="/cart">
+            Cart
+          </Link>
           <Link className="menu__item" to="/orders">
             My orders
           </Link>
@@ -86,6 +89,12 @@ export function SiteMenu() {
           </Link>
           <Link className="menu__item" to="/seller">
             Seller dashboard
+          </Link>
+
+          <div className="menu__sep" />
+          <p className="menu__group">Admin (test)</p>
+          <Link className="menu__item" to="/admin/disputes">
+            Disputes
           </Link>
 
           {user && (

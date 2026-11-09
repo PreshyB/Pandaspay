@@ -33,6 +33,7 @@ export interface Product {
   currency: string;
   brand?: string;
   options?: { name: string; values: string[] }[];
+  skus?: { id: string; attributes: Record<string, string>; stockQuantity: number }[];
   stockQuantity: number;
   slug: string;
   isActive: boolean;
@@ -63,6 +64,8 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   unitPriceMinor: string;
+  skuId?: string | null;
+  variant?: Record<string, string> | null;
 }
 
 export interface Order {
@@ -91,6 +94,24 @@ export interface Payment {
   currency: string;
   providerName: string;
   providerTransactionRef?: string;
+}
+
+export type DisputeStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED_SELLER' | 'RESOLVED_BUYER' | 'RESOLVED_SPLIT';
+
+export interface Dispute {
+  id: string;
+  paymentId: string;
+  openedById: string;
+  reason: string;
+  details?: string;
+  status: DisputeStatus;
+  splitReleaseMinor?: string;
+  splitRefundMinor?: string;
+  resolutionNotes?: string;
+  resolvedAt?: string;
+  createdAt: string;
+  payment: Payment | null;
+  order: Order | null;
 }
 
 export interface CreateOrderResponse {

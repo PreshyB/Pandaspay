@@ -14,10 +14,20 @@ export default function SellerNewProductPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('1');
+  const [comboStock, setComboStock] = useState<Record<string, string>>({});
   const [created, setCreated] = useState<{ title: string; link: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const validRows = optRows
+    .map((r) => ({ name: r.name.trim(), values: Array.from(new Set(r.values.split(',').map((v) => v.trim()).filter(Boolean))) }))
+    .filter((r) => r.name && r.values.length > 0);
+  const combos: Array<Record<string, string>> = validRows
+    .reduce<Array<Record<string, string>>>((acc, row) => acc.flatMap((a) => row.values.map((v) => ({ ...a, [row.name]: v }))), [{}])
+    .filter((c) => Object.keys(c).length > 0)
+    .slice(0, 60);
+  const comboKey = (c: Record<string, string>) => Object.keys(c).sort().map((k) => `${k}=${c[k]}`).join('&');
 
   useEffect(() => {
     if (!seller) return;
@@ -37,7 +47,10 @@ export default function SellerNewProductPage() {
         .map((r) => ({ name: r.name.trim(), values: r.values.split(',').map((v) => v.trim()).filter(Boolean) }))
         .filter((r) => r.name && r.values.length > 0);
       const priceMinor = Math.round(Number(price) * 100).toString();
-      const product = await api.createProduct({ sellerId, title, description, priceMinor, stockQuantity: Number(stock), brand: brand.trim() || undefined, options });
+      const skus = combos.length
+        ? combos.map((c) => ({ attributes: c, stockQuantity: Math.max(0, Math.floor(Number(comboStock[comboKey(c)] ?? '1') || 0)) }))
+        : undefined;
+      const product = await api.createProduct({ sellerId, title, description, priceMinor, stockQuantity: Number(stock), brand: brand.trim() || undefined, options, skus });
       setCreated({ title: product.title ?? title, link: `${window.location.origin}/p/${product.slug}` });
       setCopied(false);
       setTitle('');
@@ -46,6 +59,7 @@ export default function SellerNewProductPage() {
       setStock('1');
       setBrand('');
       setOptRows([{ name: '', values: '' }]);
+      setComboStock({});
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the product.');
     } finally {
@@ -125,6 +139,7 @@ export default function SellerNewProductPage() {
   }
 
   const priceNumber = Number(price);
+  const totalStock = combos.length ? combos.reduce((n, c) => n + Math.max(0, Math.floor(Number(comboStock[comboKey(c)] ?? '1') || 0)), 0) : Number(stock) || 0;
   const hasPrice = price !== '' && Number.isFinite(priceNumber) && priceNumber > 0;
 
   return (
@@ -162,10 +177,12 @@ export default function SellerNewProductPage() {
               <label htmlFor="price">Price (NGN)</label>
               <input id="price" type="number" min={0} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="15000" />
             </div>
-            <div className="field">
-              <label htmlFor="stock">Stock</label>
-              <input id="stock" type="number" min={1} value={stock} onChange={(e) => setStock(e.target.value)} />
-            </div>
+            {combos.length === 0 && (
+              <div className="field">
+                <label htmlFor="stock">Stock</label>
+                <input id="stock" type="number" min={1} value={stock} onChange={(e) => setStock(e.target.value)} />
+              </div>
+            )}
           </div>
         </fieldset>
 
@@ -201,7 +218,28 @@ export default function SellerNewProductPage() {
               Add another choice
             </button>
           )}
-          <p className="field__hint">Stock is counted for the whole product for now, not per colour or size.</p>
+          {combos.length > 0 && (
+            <div className="stocktable" role="group" aria-label="Stock for each combination">
+              <p className="field__hint" style={{ margin: '0 0 0.5rem' }}>
+                Set how many you have of each combination. Buyers can't order more than you list.
+              </p>
+              {combos.map((c) => {
+                const k = comboKey(c);
+                return (
+                  <div className="stocktable__row" key={k}>
+                    <label htmlFor={`st-${k}`}>{Object.values(c).join(' / ')}</label>
+                    <input
+                      id={`st-${k}`}
+                      type="number"
+                      min={0}
+                      value={comboStock[k] ?? '1'}
+                      onChange={(e) => setComboStock((cur) => ({ ...cur, [k]: e.target.value }))}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </fieldset>
 
         {error && <p className="error">{error}</p>}
@@ -222,7 +260,7 @@ export default function SellerNewProductPage() {
         <p className={`preview__price${hasPrice ? '' : ' preview__price--empty'}`}>
           {hasPrice ? formatMoney(Math.round(priceNumber * 100), 'NGN') : 'Set a price'}
         </p>
-        <p className="muted">{stock || 0} in stock</p>
+        <p className="muted">{totalStock} in stock</p>
         <p className="preview__desc">{description || 'Your description appears here.'}</p>
       </aside>
     </div>

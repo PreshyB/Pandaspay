@@ -6,6 +6,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { DispositionLockService } from '../payments/disposition-lock.service';
 import { PaymentProtectionStatus } from '../common/enums/payment-protection-status.enum';
 import { Payment } from '../payments/entities/payment.entity';
+import { Order } from '../orders/entities/order.entity';
 import { PaymentEvent } from '../payments/entities/payment-event.entity';
 import { Settlement, SettlementKind } from '../payments/entities/settlement.entity';
 import {
@@ -30,6 +31,23 @@ export class DisputesService {
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProviderService,
     private readonly dataSource: DataSource,
   ) {}
+
+  /** Admin queue: every dispute with the order and payment it concerns, newest first. */
+  async listWithContext(status?: DisputeStatus) {
+    const disputes = await this.disputes.find({ where: status ? { status } : {}, order: { createdAt: 'DESC' } });
+    const out = [];
+    for (const d of disputes) {
+      const payment = await this.dataSource.getRepository(Payment).findOneBy({ id: d.paymentId });
+      const order = payment ? await this.dataSource.getRepository(Order).findOne({ where: { id: payment.orderId }, relations: ['items'] }) : null;
+      out.push({ ...d, payment, order });
+    }
+    return out;
+  }
+
+  async getWithContext(disputeId: string) {
+    const list = await this.listWithContext();
+    return list.find((d) => d.id === disputeId) ?? null;
+  }
 
   async open(paymentId: string, openedById: string, reason: string, details?: string): Promise<Dispute> {
     // Moves the payment track to DISPUTED first (spec §3.2); the dispute
