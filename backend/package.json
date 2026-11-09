@@ -1,7 +1,7 @@
 {
   "name": "pandaspay-backend",
   "version": "0.1.0",
-  "description": "Pandas Pay backend — commerce, payment-protection and settlement orchestration API",
+  "description": "BuyBridge backend — commerce, payment-protection and settlement orchestration API",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

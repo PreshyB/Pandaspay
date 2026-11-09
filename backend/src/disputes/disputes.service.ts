@@ -51,7 +51,7 @@ export class DisputesService {
 
   async open(paymentId: string, openedById: string, reason: string, details?: string): Promise<Dispute> {
     // Moves the payment track to DISPUTED first (spec §3.2); the dispute
-    // case record is Pandas Pay's operational bookkeeping on top of that.
+    // case record is BuyBridge's operational bookkeeping on top of that.
     await this.paymentsService.openDispute(paymentId, 'BUYER', openedById, reason);
 
     const dispute = this.disputes.create({ paymentId, openedById, reason, details, status: DisputeStatus.OPEN });

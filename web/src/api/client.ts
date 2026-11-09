@@ -2,7 +2,7 @@ import type { CreateOrderResponse, Dispute, DeliveryOption, DeliverySpeed, Deliv
 
 // Empty in dev (vite.config.ts proxies /api to the backend). Set
 // VITE_API_BASE_URL at build time to point a production build at a
-// deployed backend origin, e.g. https://api.pandaspay.com.
+// deployed backend origin, e.g. https://api.buybridge.example.
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api`;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

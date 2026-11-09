@@ -1,4 +1,4 @@
-# Pandas Pay — Backend
+# BuyBridge — Backend
 
 NestJS + TypeORM + PostgreSQL API implementing the commerce, payment-protection
 and settlement-orchestration layer described in the master blueprint, built

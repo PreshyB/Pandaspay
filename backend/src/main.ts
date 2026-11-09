@@ -9,6 +9,6 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   // eslint-disable-next-line no-console
-  console.log(`Pandas Pay backend listening on :${port}`);
+  console.log(`BuyBridge backend listening on :${port}`);
 }
 bootstrap();

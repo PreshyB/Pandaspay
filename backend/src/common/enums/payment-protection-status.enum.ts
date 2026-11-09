@@ -1,12 +1,12 @@
 /**
  * Payment protection status — the financial track.
  * Owned by the buyer's payment, the licensed partner's custody of funds
- * (Model B — see Pandas Pay: Fund Custody & Settlement Model), and any dispute.
+ * (Model B — see BuyBridge: Fund Custody & Settlement Model), and any dispute.
  *
- * Source of truth: Pandas Pay — Order Status & Payment Protection
+ * Source of truth: BuyBridge — Order Status & Payment Protection
  * State-Machine Specification v1.0 (8 Oct 2026), §3.
  *
- * Pandas Pay never marks a transaction RELEASED or REFUNDED on its own
+ * BuyBridge never marks a transaction RELEASED or REFUNDED on its own
  * say-so — only on the licensed partner's confirmation (webhook).
  */
 export enum PaymentProtectionStatus {

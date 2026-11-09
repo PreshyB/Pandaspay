@@ -2,7 +2,7 @@
  * Order status — the fulfillment/delivery track.
  * Owned by the seller's and courier's actions.
  *
- * Source of truth: Pandas Pay — Order Status & Payment Protection
+ * Source of truth: BuyBridge — Order Status & Payment Protection
  * State-Machine Specification v1.0 (8 Oct 2026), §2.
  *
  * This enum and PaymentProtectionStatus are deliberately independent.

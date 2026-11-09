@@ -1,6 +1,6 @@
 /**
- * PaymentProviderService — the single seam between Pandas Pay and whichever
- * licensed partner actually holds the money under Model B (see Pandas Pay:
+ * PaymentProviderService — the single seam between BuyBridge and whichever
+ * licensed partner actually holds the money under Model B (see BuyBridge:
  * Fund Custody & Settlement Model). Every provider (PalmPay today, possibly
  * Moniepoint MFB / a specialist MFB later) implements this interface.
  *
@@ -12,7 +12,7 @@
  */
 
 export interface InitiatePaymentRequest {
-  /** Pandas Pay's own idempotency key for this payment attempt. */
+  /** BuyBridge's own idempotency key for this payment attempt. */
   idempotencyKey: string;
   amountMinor: string;
   currency: string;
@@ -44,7 +44,7 @@ export interface RefundInstruction {
 
 export interface SettlementInstructionResult {
   providerInstructionRef: string;
-  /** Model B: Pandas Pay records the instruction was sent; execution is confirmed later via webhook. */
+  /** Model B: BuyBridge records the instruction was sent; execution is confirmed later via webhook. */
   status: 'INSTRUCTION_SENT';
 }
 
