@@ -1,0 +1,96 @@
+import { useEffect, useId, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { signOutAccount, useAccount } from '../lib/account';
+
+/** Dropdown site menu: disclosure button + panel of links. Closes on Escape, outside click and navigation. */
+export function SiteMenu() {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
+  const location = useLocation();
+  const { user } = useAccount();
+
+  useEffect(() => setOpen(false), [location.pathname, location.hash]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        btn.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="menu" ref={wrap}>
+      <button
+        ref={btn}
+        type="button"
+        className="menu__btn"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="menu__icon" aria-hidden="true" />
+        Menu
+      </button>
+
+      {open && (
+        <div className="menu__panel" id={panelId}>
+          <p className="menu__group">Learn</p>
+          <Link className="menu__item" to="/#how">
+            How BuyBridge works
+          </Link>
+          <Link className="menu__item" to="/#safety">
+            Safety and disputes
+          </Link>
+          <Link className="menu__item" to="/#faq">
+            Questions
+          </Link>
+
+          <div className="menu__sep" />
+          <p className="menu__group">Buyers</p>
+          <Link className="menu__item" to="/get-started?role=buyer">
+            Create a buyer account
+          </Link>
+          <Link className="menu__item" to="/orders">
+            My orders
+          </Link>
+
+          <div className="menu__sep" />
+          <p className="menu__group">Sellers</p>
+          <Link className="menu__item" to="/get-started?role=seller">
+            Create a seller account
+          </Link>
+          <Link className="menu__item" to="/seller/new-product">
+            List a product
+          </Link>
+          <Link className="menu__item" to="/seller">
+            Seller dashboard
+          </Link>
+
+          {user && (
+            <>
+              <div className="menu__sep" />
+              <p className="menu__group">Signed in as {user.fullName}</p>
+              <button type="button" className="menu__item" onClick={signOutAccount}>
+                Sign out of this browser
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

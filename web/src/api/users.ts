@@ -7,13 +7,14 @@ export interface User {
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api`;
 
-export async function createUser(input: { email: string; fullName: string; roles?: string[] }): Promise<User> {
+export async function createUser(input: { email: string; fullName: string; phone?: string; roles?: string[] }): Promise<User> {
   const res = await fetch(`${BASE}/users`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (res.status === 409) throw new Error('An account with this email already exists on this test server.');
+  if (!res.ok) throw new Error('We could not create your account. Please try again.');
   return res.json();
 }
 

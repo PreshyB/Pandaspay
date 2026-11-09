@@ -1,50 +1,60 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ChatDemo } from '../components/ChatDemo';
+import { Faq } from '../components/Faq';
+import { HeroScene } from '../components/HeroScene';
+import { HowItWorks } from '../components/HowItWorks';
+import { useInView } from '../lib/useInView';
 
-/** Hangers of the tied-arch bridge: [x, y on the arch]. The arch is a quadratic curve, so y is exact. */
-const HANGERS: Array<[number, number]> = [
-  [175, 143.5],
-  [205, 118.8],
-  [235, 102.3],
-  [280, 93],
-  [325, 102.3],
-  [355, 118.8],
-  [385, 143.5],
-];
-
-function Bridge() {
+function Safety() {
+  const { ref, seen } = useInView<HTMLDivElement>(0.25);
   return (
-    <svg
-      className="bridge"
-      viewBox="0 0 560 300"
-      role="img"
-      aria-label="Your payment is held by BuyBridge, between you and the seller, until delivery is confirmed."
-    >
-      <circle className="bridge__bank" cx="64" cy="196" r="46" />
-      <circle className="bridge__bank" cx="496" cy="196" r="46" />
-      <text className="bridge__label" x="64" y="203" textAnchor="middle">
-        You
-      </text>
-      <text className="bridge__label" x="496" y="203" textAnchor="middle">
-        Seller
-      </text>
+    <section className="sec" id="safety">
+      <div className="sec__head">
+        <p className="eyebrow">Safety and disputes</p>
+        <h2>Protected when it goes right. Frozen when it doesn't.</h2>
+      </div>
 
-      {HANGERS.map(([x, y]) => (
-        <line key={x} className="bridge__hanger" x1={x} y1={y} x2={x} y2={194} />
-      ))}
-      <line className="bridge__deck" x1="110" y1="196" x2="450" y2="196" />
-      <path className="bridge__arch" d="M130 196 Q280 -10 430 196" pathLength={1} />
+      <div ref={ref} className={`tracks${seen ? ' tracks--in' : ''}`}>
+        <article className="track track--ok">
+          <h3>When the order arrives</h3>
+          <ol className="rail" aria-label="Payment protection: held, then releasable, then released">
+            <li style={{ ['--i' as string]: 0 }}>
+              <strong>Held</strong>
+              <span>Paid to BuyBridge</span>
+            </li>
+            <li style={{ ['--i' as string]: 1 }}>
+              <strong>72-hour window</strong>
+              <span>Starts at delivery</span>
+            </li>
+            <li style={{ ['--i' as string]: 2 }}>
+              <strong>Released</strong>
+              <span>Seller is paid</span>
+            </li>
+          </ol>
+          <p>No dispute, no wait for anyone to act. The payout happens on its own.</p>
+        </article>
 
-      <line className="bridge__hanger" x1="235" y1="200" x2="235" y2="224" />
-      <line className="bridge__hanger" x1="325" y1="200" x2="325" y2="224" />
-      <rect className="bridge__chip" x="180" y="224" width="200" height="62" rx="14" />
-      <text className="bridge__amount" x="280" y="252" textAnchor="middle">
-        ₦18,500
-      </text>
-      <text className="bridge__note" x="280" y="274" textAnchor="middle">
-        held by BuyBridge
-      </text>
-    </svg>
+        <article className="track track--bad">
+          <h3>When something is wrong</h3>
+          <ol className="rail" aria-label="Dispute: payment frozen, then resolved">
+            <li style={{ ['--i' as string]: 0 }}>
+              <strong>Report it</strong>
+              <span>From your order page</span>
+            </li>
+            <li style={{ ['--i' as string]: 1 }}>
+              <strong>Frozen</strong>
+              <span>Nobody is paid</span>
+            </li>
+            <li style={{ ['--i' as string]: 2 }}>
+              <strong>Resolved</strong>
+              <span>Seller, buyer or split</span>
+            </li>
+          </ol>
+          <p>Open a dispute any time while the payment is protected. The money stays put until it's settled.</p>
+        </article>
+      </div>
+    </section>
   );
 }
 
@@ -53,23 +63,34 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   return (
-    <div>
+    <div className="home">
       <section className="hero">
-        <div>
-          <h1>Pay now. The seller is paid when your order arrives.</h1>
+        <div className="hero__copy">
+          <p className="eyebrow">Payment protection for buying and selling in chat</p>
+          <h1>Pay safe. Sellers get paid when it arrives.</h1>
           <p className="hero__lede">
-            Found something on WhatsApp, Instagram or TikTok? Paste the product code the seller sent you.
-            BuyBridge holds your payment until you confirm delivery.
+            Found something on WhatsApp, Instagram or TikTok? BuyBridge holds the buyer's payment until delivery is
+            confirmed, so neither side has to trust a stranger.
           </p>
+
+          <div className="hero__ctas">
+            <Link className="btn btn--lg" to="/get-started?role=buyer">
+              I'm buying
+            </Link>
+            <Link className="btn btn--lg btn--outline" to="/get-started?role=seller">
+              I'm selling
+            </Link>
+          </div>
 
           <form
             className="find"
+            id="find"
             onSubmit={(e) => {
               e.preventDefault();
               if (slug.trim()) navigate(`/p/${slug.trim()}`);
             }}
           >
-            <label htmlFor="slug">Product code</label>
+            <label htmlFor="slug">Already have a product code from a seller?</label>
             <div className="find__row">
               <input
                 id="slug"
@@ -81,54 +102,31 @@ export default function HomePage() {
                 autoCapitalize="none"
                 spellCheck={false}
               />
-              <button className="btn btn--lg" type="submit" disabled={!slug.trim()}>
+              <button className="btn" type="submit" disabled={!slug.trim()}>
                 Find product
               </button>
             </div>
           </form>
         </div>
 
-        <div className="hero__figure">
-          <Bridge />
-        </div>
+        <HeroScene />
       </section>
 
-      <ol className="flow" aria-label="How a protected order works">
-        <li>
-          <strong>You pay</strong>
-          BuyBridge holds the money. The seller can't touch it yet.
-        </li>
-        <li>
-          <strong>Seller ships</strong>
-          They accept your order and add a waybill reference.
-        </li>
-        <li>
-          <strong>You confirm</strong>
-          Tap "I've received this order" when it arrives.
-        </li>
-        <li>
-          <strong>Seller is paid</strong>
-          After a short protection window with no dispute.
-        </li>
-      </ol>
+      <ChatDemo />
+      <HowItWorks />
+      <Safety />
+      <Faq />
 
-      <section className="split">
-        <div className="split__item">
-          <h2>Selling on chat?</h2>
-          <p>
-            List a product, get a link, and share it in your DMs. Buyers pay before you ship, and you're paid
-            once delivery is confirmed.
-          </p>
-          <Link className="btn btn--secondary" to="/seller/new-product">
-            List a product
+      <section className="closer">
+        <h2>Ready to try it?</h2>
+        <p>Make a free account and run a protected order from start to finish.</p>
+        <div className="hero__ctas">
+          <Link className="btn btn--lg" to="/get-started?role=buyer">
+            Start as a buyer
           </Link>
-        </div>
-        <div className="split__item">
-          <h2>Something wrong with an order?</h2>
-          <p>
-            Open a dispute from the order page. The payment is frozen until the problem is resolved, so the
-            seller isn't paid while it's open.
-          </p>
+          <Link className="btn btn--lg btn--secondary" to="/get-started?role=seller">
+            Start selling
+          </Link>
         </div>
       </section>
     </div>
