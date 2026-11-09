@@ -62,16 +62,16 @@ const ICONS: Record<string, ReactNode> = {
 
 const CONTENT: Record<Tab, { icon: string; title: string; text: string }[]> = {
   buyers: [
-    { icon: 'link', title: 'Get the seller\'s link', text: 'The seller sends a BuyBridge link or product code in your chat. Open it and check the item and price.' },
-    { icon: 'lock', title: 'Pay BuyBridge, not the seller', text: 'Your money is held. The seller can see it is secured, but cannot touch it yet.' },
+    { icon: 'link', title: 'Get the seller\'s link', text: 'The seller sends a BuyBridge link or product code in your chat. Open it, pick your colour, size or model, and the quantity.' },
+    { icon: 'lock', title: 'Sign up, then pay', text: 'New here? A quick sign-up, then your delivery details. Your payment is verified and held under BuyBridge\'s protection terms.' },
     { icon: 'box', title: 'Receive your order', text: 'The seller ships and adds a waybill reference. Follow progress on your order page, then confirm when it arrives.' },
-    { icon: 'shield', title: '72 hours to speak up', text: 'After delivery, a protection window runs. Report a problem and the payment freezes until it is resolved.' },
+    { icon: 'shield', title: 'A window to speak up', text: 'After delivery, a protection window runs (72 hours in this test version). Report a problem and the payment is held while it is reviewed.' },
   ],
   sellers: [
-    { icon: 'tag', title: 'List a product', text: 'Add what you are selling and the price. It takes a minute and you get a link.' },
+    { icon: 'tag', title: 'Start selling, list a product', text: 'Switch on selling on your account, add the product, its price and choices like colour and size. You get a link.' },
     { icon: 'send', title: 'Share it in your chat', text: 'Send the link in WhatsApp, Instagram or TikTok DMs. Buyers pay before you ship.' },
     { icon: 'box', title: 'Accept and ship', text: 'When the buyer\'s payment is secured, accept the order, ship it and add the waybill reference.' },
-    { icon: 'coins', title: 'Get paid', text: 'Once delivery is confirmed and the 72-hour window passes with no dispute, the money is released to you.' },
+    { icon: 'coins', title: 'Get paid', text: 'Once delivery is confirmed and the protection window passes with no dispute, your Protected Funds become available.' },
   ],
 };
 
@@ -129,8 +129,8 @@ export function HowItWorks() {
       </div>
 
       <div className="sec__cta">
-        <Link className="btn btn--lg" to={`/get-started?role=${tab === 'buyers' ? 'buyer' : 'seller'}`}>
-          {tab === 'buyers' ? 'Start as a buyer' : 'Start selling'}
+        <Link className="btn btn--lg" to={tab === 'buyers' ? '/get-started' : '/start-selling'}>
+          {tab === 'buyers' ? 'Create your account' : 'Start selling'}
         </Link>
       </div>
     </section>

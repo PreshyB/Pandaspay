@@ -3,9 +3,9 @@ import { useInView } from '../lib/useInView';
 const MESSAGES: Array<{ from: 'seller' | 'buyer' | 'system'; text: string; link?: string }> = [
   { from: 'seller', text: 'Ankara two-piece, size 12. ₦18,500. Pay here and I ship tomorrow:', link: '/p/a1b2c3d4' },
   { from: 'buyer', text: 'How do I know you will actually send it?' },
-  { from: 'seller', text: 'The money is held by BuyBridge. I only get it after you receive the order.' },
+  { from: 'seller', text: 'Your payment is protected by BuyBridge until the order is delivered.' },
   { from: 'buyer', text: 'Okay, paying now.' },
-  { from: 'system', text: '₦18,500 secured. The seller can now ship your order.' },
+  { from: 'system', text: 'Payment verified: ₦18,500 Payment Protected. The seller can now ship.' },
 ];
 
 /** A chat that plays one message at a time when scrolled into view: the exact trust problem BuyBridge removes. */
@@ -19,7 +19,7 @@ export function ChatDemo() {
         <h2 id="chat-h">Buying in DMs shouldn't take a leap of faith</h2>
         <p>
           Sellers worry the buyer will vanish after the order is packed. Buyers worry the seller will vanish after the
-          transfer. BuyBridge sits in the middle so neither has to trust a stranger.
+          transfer. BuyBridge adds a structured process in between: verified payment, tracked delivery and a dispute process.
         </p>
       </div>
 

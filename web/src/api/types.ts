@@ -31,6 +31,8 @@ export interface Product {
   description?: string;
   priceMinor: string;
   currency: string;
+  brand?: string;
+  options?: { name: string; values: string[] }[];
   stockQuantity: number;
   slug: string;
   isActive: boolean;

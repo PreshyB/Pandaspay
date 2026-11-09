@@ -10,6 +10,8 @@ import ProductPage from './pages/ProductPage';
 import OrderStatusPage from './pages/OrderStatusPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerNewProductPage from './pages/SellerNewProductPage';
+import CheckoutPage from './pages/CheckoutPage';
+import StartSellingPage from './pages/StartSellingPage';
 
 /** Scrolls to #section after navigation, and to the top on a plain page change. */
 function ScrollToHash() {
@@ -56,14 +58,16 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/get-started" element={<GetStartedPage />} />
           <Route path="/orders" element={<MyOrdersPage />} />
+          <Route path="/start-selling" element={<StartSellingPage />} />
           <Route path="/p/:slug" element={<ProductPage />} />
+          <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/orders/:orderId" element={<OrderStatusPage />} />
           <Route path="/seller" element={<SellerDashboardPage />} />
           <Route path="/seller/new-product" element={<SellerNewProductPage />} />
         </Routes>
       </main>
       <footer className="footer">
-        <span>BuyBridge holds your payment until delivery is confirmed.</span>
+        <span>Payment protection follows BuyBridge's terms and doesn't cover every case.</span>
         <span>Test mode: payments are simulated and no real money moves.</span>
       </footer>
     </div>

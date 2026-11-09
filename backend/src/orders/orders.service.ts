@@ -44,6 +44,16 @@ export class OrdersService {
     let totalMinor = BigInt(0);
     const items = dto.items.map((itemDto) => {
       const product = products.find((p) => p.id === itemDto.productId)!;
+      if (!Number.isInteger(itemDto.quantity) || itemDto.quantity < 1) {
+        throw new BadRequestException('Quantity must be a whole number of at least 1');
+      }
+      // The server, not the browser, decides which choices are valid.
+      for (const option of product.options ?? []) {
+        const chosen = itemDto.variant?.[option.name];
+        if (typeof chosen !== 'string' || !option.values.includes(chosen)) {
+          throw new BadRequestException(`Please choose a valid ${option.name} for "${product.title}"`);
+        }
+      }
       const lineTotal = BigInt(product.priceMinor) * BigInt(itemDto.quantity);
       totalMinor += lineTotal;
       return this.orderItems.create({

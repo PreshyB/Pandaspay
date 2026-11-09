@@ -60,18 +60,23 @@ export function SiteMenu() {
           </Link>
 
           <div className="menu__sep" />
-          <p className="menu__group">Buyers</p>
-          <Link className="menu__item" to="/get-started?role=buyer">
-            Create a buyer account
+          <p className="menu__group">Buying</p>
+          {!user && (
+            <Link className="menu__item" to="/get-started">
+              Create your account
+            </Link>
+          )}
+          <Link className="menu__item" to="/#find">
+            Enter a product code
           </Link>
           <Link className="menu__item" to="/orders">
             My orders
           </Link>
 
           <div className="menu__sep" />
-          <p className="menu__group">Sellers</p>
-          <Link className="menu__item" to="/get-started?role=seller">
-            Create a seller account
+          <p className="menu__group">Selling</p>
+          <Link className="menu__item" to="/start-selling">
+            Start selling
           </Link>
           <Link className="menu__item" to="/seller/new-product">
             List a product

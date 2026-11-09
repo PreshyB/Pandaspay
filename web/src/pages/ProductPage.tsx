@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Product } from '../api/types';
+import { saveSelection } from '../lib/checkout';
 import { formatMoney } from '../lib/money';
-import { useDevIdentity } from '../lib/useDevIdentity';
 
 function Tick() {
   return (
@@ -18,12 +18,8 @@ export default function ProductPage() {
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [variant, setVariant] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
-  const [placing, setPlacing] = useState(false);
-
-  const { user: buyer, loading: identityLoading, createIdentity } = useDevIdentity('buyer');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
 
   useEffect(() => {
     api
@@ -31,29 +27,6 @@ export default function ProductPage() {
       .then(setProduct)
       .catch(() => setError('Product not found. Check the link and try again.'));
   }, [slug]);
-
-  async function handleBuyNow() {
-    if (!product) return;
-    setError(null);
-    setPlacing(true);
-    try {
-      let buyerId = buyer?.id;
-      if (!buyerId) {
-        const created = await createIdentity({ email, fullName: name });
-        buyerId = created.id;
-      }
-      const { order } = await api.createOrder({
-        buyerId,
-        sellerId: product.sellerId,
-        items: [{ productId: product.id, quantity }],
-      });
-      navigate(`/orders/${order.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not place the order. Try again.');
-    } finally {
-      setPlacing(false);
-    }
-  }
 
   if (error && !product) {
     return (
@@ -68,70 +41,88 @@ export default function ProductPage() {
   }
   if (!product) return <p className="muted">Loading product…</p>;
 
+  const options = product.options ?? [];
+  const missing = options.filter((o) => !variant[o.name]);
+  const max = product.stockQuantity > 0 ? product.stockQuantity : 0;
+  const subtotal = BigInt(product.priceMinor) * BigInt(quantity);
+
+  function goToCheckout() {
+    saveSelection(slug, { quantity, variant });
+    navigate(`/checkout/${slug}`);
+  }
+
   return (
     <div className="product">
       <div>
+        {product.brand && <p className="eyebrow">{product.brand}</p>}
         <h1>{product.title}</h1>
         <p className="product__price">{formatMoney(product.priceMinor, product.currency)}</p>
-        <p className="muted">{product.stockQuantity} in stock</p>
+        <p className="muted">{max > 0 ? `${max} in stock` : 'Out of stock'}</p>
         <p className="product__desc">{product.description || 'The seller has not added a description.'}</p>
       </div>
 
-      <aside className="buybox" aria-label="Buy this product">
+      <aside className="buybox" aria-label="Choose your options">
+        {options.map((o) => (
+          <fieldset className="choices" key={o.name}>
+            <legend>{o.name}</legend>
+            <div className="choices__row">
+              {o.values.map((v) => (
+                <label key={v} className={`chip${variant[o.name] === v ? ' chip--on' : ''}`}>
+                  <input
+                    type="radio"
+                    name={`opt-${o.name}`}
+                    value={v}
+                    checked={variant[o.name] === v}
+                    onChange={() => setVariant((cur) => ({ ...cur, [o.name]: v }))}
+                  />
+                  {v}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ))}
+
         <div className="field">
           <label htmlFor="qty">Quantity</label>
           <input
             id="qty"
             type="number"
             min={1}
-            max={product.stockQuantity || 99}
+            max={max || 1}
             value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+            onChange={(e) => setQuantity(Math.min(Math.max(1, Math.floor(Number(e.target.value) || 1)), max || 1))}
           />
         </div>
 
-        {!buyer && !identityLoading && (
-          <>
-            <div className="field">
-              <label htmlFor="name">Your name</label>
-              <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" autoComplete="name" />
-            </div>
-            <div className="field">
-              <label htmlFor="email">Your email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-              />
-            </div>
-          </>
-        )}
+        <dl className="sum">
+          <div>
+            <dt>Subtotal</dt>
+            <dd>{formatMoney(subtotal.toString(), product.currency)}</dd>
+          </div>
+          <div>
+            <dt>Delivery</dt>
+            <dd className="muted">Next step</dd>
+          </div>
+        </dl>
 
-        {error && <p className="error">{error}</p>}
+        {missing.length > 0 && <p className="field__hint">Choose: {missing.map((m) => m.name).join(', ')}</p>}
 
-        <button
-          className="btn btn--lg btn--block"
-          onClick={handleBuyNow}
-          disabled={placing || (!buyer && (!name || !email))}
-        >
-          {placing ? 'Placing order…' : 'Buy with protection'}
+        <button className="btn btn--lg btn--block" onClick={goToCheckout} disabled={max === 0 || missing.length > 0}>
+          Continue to checkout
         </button>
 
         <ul className="assure">
           <li>
             <Tick />
-            You pay BuyBridge, not the seller.
+            Next: a quick sign-up if you're new, then your delivery details.
           </li>
           <li>
             <Tick />
-            The seller ships once your payment is held.
+            Payment Protected: your payment is held under BuyBridge's protection terms until delivery is confirmed.
           </li>
           <li>
             <Tick />
-            The seller is paid after you confirm delivery.
+            Protection has rules and doesn't guarantee every transaction.
           </li>
         </ul>
       </aside>

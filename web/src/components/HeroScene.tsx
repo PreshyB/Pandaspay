@@ -10,10 +10,10 @@ const HANGERS: Array<[number, number]> = [
 ];
 
 const STAGES = [
-  ['You pay', 'Your money goes to BuyBridge, not to the seller.'],
-  ['Money is held', 'The seller sees it is secured, then ships your order.'],
-  ['You confirm', 'Tap "I\'ve received this order". A 72-hour protection window starts.'],
-  ['Seller is paid', 'No dispute in the window? The money is released to the seller.'],
+  ['You pay', 'Your payment is verified and goes under BuyBridge protection.'],
+  ['Payment Protected', 'The seller sees the funds are protected, then ships your order.'],
+  ['You confirm', 'Tap "I\'ve received this order". A protection window starts.'],
+  ['Funds released', 'No dispute in the window? The seller\'s Protected Funds are released.'],
 ] as const;
 
 /**

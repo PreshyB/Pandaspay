@@ -9,13 +9,11 @@ import { useDevIdentity } from '../lib/useDevIdentity';
 type OrderWithPayment = Order & { payment: Payment };
 
 export default function SellerDashboardPage() {
-  const { user: seller, loading: identityLoading, createIdentity } = useDevIdentity('seller');
+  const { user: seller, loading: identityLoading } = useDevIdentity('seller');
   const [orders, setOrders] = useState<OrderWithPayment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [waybillDrafts, setWaybillDrafts] = useState<Record<string, string>>({});
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
 
   const refresh = useCallback(() => {
     if (!seller) return;
@@ -43,25 +41,12 @@ export default function SellerDashboardPage() {
 
   if (!seller) {
     return (
-      <div style={{ maxWidth: '30rem' }}>
-        <div className="page-head">
-          <h1>Set up your seller profile</h1>
-          <p>
-            Add your name and email to start receiving orders. This test profile is saved in this browser
-            only.
-          </p>
-        </div>
-        <div className="field">
-          <label htmlFor="name">Your name</label>
-          <input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-        </div>
-        <div className="field">
-          <label htmlFor="email">Your email</label>
-          <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-        </div>
-        <button className="btn btn--lg" disabled={!name || !email} onClick={() => createIdentity({ email, fullName: name })}>
-          Create profile
-        </button>
+      <div className="card empty">
+        <h1>Start selling first</h1>
+        <p>Seller tools are part of your one BuyBridge account. Switch them on to see your orders.</p>
+        <Link className="btn" to="/start-selling">
+          Start selling
+        </Link>
       </div>
     );
   }

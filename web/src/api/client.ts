@@ -27,6 +27,8 @@ export const api = {
     description?: string;
     priceMinor: string;
     stockQuantity?: number;
+    brand?: string;
+    options?: { name: string; values: string[] }[];
   }) => request<Product>('/products', { method: 'POST', body: JSON.stringify(input) }),
 
   createOrder: (input: {

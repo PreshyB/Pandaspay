@@ -9,6 +9,12 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
+export interface ProductOption {
+  /** e.g. "Colour", "Size", "Model" */
+  name: string;
+  values: string[];
+}
+
 @Entity('products')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
@@ -33,6 +39,17 @@ export class Product {
 
   @Column({ default: 'NGN' })
   currency: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  brand?: string;
+
+  /**
+   * Seller-defined choices the buyer must make (colour, size, model...).
+   * Stock is still tracked per product, not per combination; SKU-level
+   * stock (blueprint §5.3) is the next step.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  options?: ProductOption[];
 
   @Column({ default: 0 })
   stockQuantity: number;

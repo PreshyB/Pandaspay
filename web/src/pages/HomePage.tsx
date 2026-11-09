@@ -21,18 +21,18 @@ function Safety() {
           <ol className="rail" aria-label="Payment protection: held, then releasable, then released">
             <li style={{ ['--i' as string]: 0 }}>
               <strong>Held</strong>
-              <span>Paid to BuyBridge</span>
+              <span>Payment Protected</span>
             </li>
             <li style={{ ['--i' as string]: 1 }}>
-              <strong>72-hour window</strong>
+              <strong>Protection window</strong>
               <span>Starts at delivery</span>
             </li>
             <li style={{ ['--i' as string]: 2 }}>
               <strong>Released</strong>
-              <span>Seller is paid</span>
+              <span>Funds available to seller</span>
             </li>
           </ol>
-          <p>No dispute, no wait for anyone to act. The payout happens on its own.</p>
+          <p>With no dispute, release follows automatically once the window ends.</p>
         </article>
 
         <article className="track track--bad">
@@ -51,7 +51,7 @@ function Safety() {
               <span>Seller, buyer or split</span>
             </li>
           </ol>
-          <p>Open a dispute any time while the payment is protected. The money stays put until it's settled.</p>
+          <p>Open a dispute while the payment is protected. The money stays put until it's decided. Protection follows BuyBridge's terms and doesn't cover every case.</p>
         </article>
       </div>
     </section>
@@ -67,18 +67,18 @@ export default function HomePage() {
       <section className="hero">
         <div className="hero__copy">
           <p className="eyebrow">Payment protection for buying and selling in chat</p>
-          <h1>Pay safe. Sellers get paid when it arrives.</h1>
+          <h1>Buy and sell on social media, with the payment protected.</h1>
           <p className="hero__lede">
-            Found something on WhatsApp, Instagram or TikTok? BuyBridge holds the buyer's payment until delivery is
-            confirmed, so neither side has to trust a stranger.
+            Found something on WhatsApp, Instagram or TikTok? BuyBridge verifies the payment and holds it under its
+            protection terms until delivery is confirmed. Sellers get Protected Funds, buyers get a clear record.
           </p>
 
           <div className="hero__ctas">
-            <Link className="btn btn--lg" to="/get-started?role=buyer">
-              I'm buying
+            <Link className="btn btn--lg" to="/get-started">
+              Create your account
             </Link>
-            <Link className="btn btn--lg btn--outline" to="/get-started?role=seller">
-              I'm selling
+            <Link className="btn btn--lg btn--outline" to="/start-selling">
+              Start selling
             </Link>
           </div>
 
@@ -119,12 +119,12 @@ export default function HomePage() {
 
       <section className="closer">
         <h2>Ready to try it?</h2>
-        <p>Make a free account and run a protected order from start to finish.</p>
+        <p>Make one free account. Buy straight away, and switch on selling whenever you like.</p>
         <div className="hero__ctas">
-          <Link className="btn btn--lg" to="/get-started?role=buyer">
-            Start as a buyer
+          <Link className="btn btn--lg" to="/get-started">
+            Create your account
           </Link>
-          <Link className="btn btn--lg btn--secondary" to="/get-started?role=seller">
+          <Link className="btn btn--lg btn--secondary" to="/start-selling">
             Start selling
           </Link>
         </div>

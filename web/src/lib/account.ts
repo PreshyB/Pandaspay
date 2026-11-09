@@ -3,45 +3,55 @@ import { createUser, getUser, type User } from '../api/users';
 
 /**
  * TEMPORARY account stand-in (no real auth yet; see backend/README.md).
- * One user row per browser. Its id is stored under both role keys so the
- * existing buyer/seller pages (useDevIdentity) keep working unchanged.
+ *
+ * Follows the blueprint's one-account model: signing up creates ONE user
+ * with buyer capability. "Start selling" later switches seller tools on for
+ * that same user (verification/KYC is not built yet, so activation is local
+ * for now). The ids live under the keys the existing pages already read.
  * Returning users on a new browser can't sign in until real auth exists.
  */
-const KEYS = ['pandaspay.dev.buyerUserId', 'pandaspay.dev.sellerUserId'];
+const BUYER_KEY = 'pandaspay.dev.buyerUserId';
+const SELLER_KEY = 'pandaspay.dev.sellerUserId';
 const EVENT = 'buybridge:account';
 
-function readId(): string | null {
+function get(key: string): string | null {
   try {
-    return KEYS.map((k) => localStorage.getItem(k)).find(Boolean) ?? null;
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-export async function registerAccount(input: {
-  fullName: string;
-  email: string;
-  phone?: string;
-  role: 'buyer' | 'seller';
-}): Promise<User> {
-  const user = await createUser({
-    fullName: input.fullName,
-    email: input.email,
-    phone: input.phone || undefined,
-    roles: [input.role.toUpperCase()],
-  });
+function set(key: string, value: string | null) {
   try {
-    KEYS.forEach((k) => localStorage.setItem(k, user.id));
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
   } catch {
     /* storage unavailable: account works for this page view only */
   }
   window.dispatchEvent(new Event(EVENT));
+}
+
+export async function registerAccount(input: { fullName: string; email: string; phone?: string }): Promise<User> {
+  const user = await createUser({
+    fullName: input.fullName,
+    email: input.email,
+    phone: input.phone || undefined,
+    roles: ['BUYER'],
+  });
+  set(BUYER_KEY, user.id);
   return user;
+}
+
+/** Switch seller tools on for the signed-in account (test mode: no verification step yet). */
+export function activateSelling(userId: string) {
+  set(SELLER_KEY, userId);
 }
 
 export function signOutAccount() {
   try {
-    KEYS.forEach((k) => localStorage.removeItem(k));
+    localStorage.removeItem(BUYER_KEY);
+    localStorage.removeItem(SELLER_KEY);
   } catch {
     /* ignore */
   }
@@ -50,10 +60,12 @@ export function signOutAccount() {
 
 export function useAccount() {
   const [user, setUser] = useState<User | null>(null);
+  const [isSeller, setIsSeller] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    const id = readId();
+    const id = get(BUYER_KEY) ?? get(SELLER_KEY);
+    setIsSeller(!!id && get(SELLER_KEY) === id);
     if (!id) {
       setUser(null);
       setLoading(false);
@@ -71,5 +83,5 @@ export function useAccount() {
     return () => window.removeEventListener(EVENT, load);
   }, [load]);
 
-  return { user, loading };
+  return { user, isSeller, loading };
 }
