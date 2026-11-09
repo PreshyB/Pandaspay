@@ -9,6 +9,9 @@ import { PaymentProtectionStatus } from '../common/enums/payment-protection-stat
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { Payment } from '../payments/entities/payment.entity';
+import { DeliveryOption, DeliveryZone } from '../delivery/delivery-option.entity';
+import { sameState } from '../delivery/delivery.service';
+import { User } from '../users/user.entity';
 
 @Injectable()
 export class OrdersService {
@@ -17,6 +20,8 @@ export class OrdersService {
     @InjectRepository(OrderItem) private readonly orderItems: Repository<OrderItem>,
     @InjectRepository(Product) private readonly products: Repository<Product>,
     @InjectRepository(Payment) private readonly payments: Repository<Payment>,
+    @InjectRepository(DeliveryOption) private readonly deliveryOptions: Repository<DeliveryOption>,
+    @InjectRepository(User) private readonly users: Repository<User>,
     private readonly paymentsService: PaymentsService,
   ) {}
 
@@ -64,7 +69,36 @@ export class OrdersService {
       });
     });
 
+    // Delivery: the server picks the fee and window from the seller's own option and
+    // checks it fits the buyer's address. The browser never supplies the amount.
+    let deliveryFee = BigInt(0);
+    let deliveryOption: Order['deliveryOption'];
+    if (dto.deliveryOptionId) {
+      const option = await this.deliveryOptions.findOneBy({ id: dto.deliveryOptionId });
+      if (!option || option.sellerId !== dto.sellerId) {
+        throw new BadRequestException('That delivery option is not available from this seller');
+      }
+      if (!option.isActive) throw new BadRequestException('That delivery option is paused by the seller');
+      const seller = await this.users.findOneBy({ id: dto.sellerId });
+      const buyerState = typeof dto.deliveryAddress?.state === 'string' ? dto.deliveryAddress.state : undefined;
+      const within = sameState(buyerState, seller?.storeState);
+      if ((option.zone === DeliveryZone.WITHIN_STATE) !== within) {
+        throw new BadRequestException('That delivery option does not cover your delivery address');
+      }
+      deliveryFee = BigInt(option.feeMinor);
+      totalMinor += deliveryFee;
+      deliveryOption = {
+        zone: option.zone,
+        speed: option.speed,
+        feeMinor: option.feeMinor,
+        minHours: option.minHours,
+        maxHours: option.maxHours,
+      };
+    }
+
     const order = this.orders.create({
+      deliveryFeeMinor: deliveryFee.toString(),
+      deliveryOption,
       buyerId: dto.buyerId,
       sellerId: dto.sellerId,
       items,
@@ -129,6 +163,10 @@ export class OrdersService {
     const order = await this.orders.findOneByOrFail({ id: orderId });
     this.assertOrderTransition(order.status, OrderStatus.SHIPPED);
     order.status = OrderStatus.SHIPPED;
+    order.shippedAt = new Date();
+    if (order.deliveryOption) {
+      order.expectedDeliveryBy = new Date(order.shippedAt.getTime() + order.deliveryOption.maxHours * 60 * 60 * 1000);
+    }
     order.deliveryAddress = { ...(order.deliveryAddress ?? {}), waybillRef };
     return this.orders.save(order);
   }

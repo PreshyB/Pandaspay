@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { formatMoney } from '../lib/money';
@@ -6,6 +6,7 @@ import { useDevIdentity } from '../lib/useDevIdentity';
 
 export default function SellerNewProductPage() {
   const { user: seller, loading } = useDevIdentity('seller');
+  const [hasDelivery, setHasDelivery] = useState<boolean | null>(null);
   const [brand, setBrand] = useState('');
   const [optRows, setOptRows] = useState<Array<{ name: string; values: string }>>([{ name: '', values: '' }]);
 
@@ -17,6 +18,14 @@ export default function SellerNewProductPage() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!seller) return;
+    api
+      .getSellerDelivery(seller.id)
+      .then((d) => setHasDelivery(d.options.some((o) => o.isActive)))
+      .catch(() => setHasDelivery(false));
+  }, [seller]);
 
   async function handleCreateProduct() {
     setError(null);
@@ -95,6 +104,21 @@ export default function SellerNewProductPage() {
         <p>Seller tools are part of your one BuyBridge account. Switch them on to list a product.</p>
         <Link className="btn" to="/start-selling">
           Start selling
+        </Link>
+      </div>
+    );
+  }
+
+  if (hasDelivery === null) return <p className="muted">Loading…</p>;
+  if (!hasDelivery) {
+    return (
+      <div className="card empty">
+        <h1>Set up delivery first</h1>
+        <p>
+          Buyers need to know what delivery costs and when it arrives, so add at least one delivery zone before you list a product.
+        </p>
+        <Link className="btn" to="/seller/delivery">
+          Set up delivery
         </Link>
       </div>
     );

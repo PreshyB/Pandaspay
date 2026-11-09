@@ -78,6 +78,9 @@ export function SiteMenu() {
           <Link className="menu__item" to="/start-selling">
             Start selling
           </Link>
+          <Link className="menu__item" to="/seller/delivery">
+            Delivery and shipping
+          </Link>
           <Link className="menu__item" to="/seller/new-product">
             List a product
           </Link>

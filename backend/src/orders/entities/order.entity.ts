@@ -53,6 +53,27 @@ export class Order {
   @Column({ type: 'jsonb', nullable: true })
   deliveryAddress?: Record<string, unknown>;
 
+  /** Delivery charged on this order, minor units. Set by the server from the seller's chosen option. */
+  @Column({ type: 'bigint', default: 0 })
+  deliveryFeeMinor: string;
+
+  /** Snapshot of the option the buyer agreed to, so later edits by the seller never rewrite it. */
+  @Column({ type: 'jsonb', nullable: true })
+  deliveryOption?: {
+    zone: string;
+    speed: string;
+    feeMinor: string;
+    minHours: number;
+    maxHours: number;
+  };
+
+  @Column({ type: 'timestamptz', nullable: true })
+  shippedAt?: Date;
+
+  /** shippedAt + the promised maximum window. Estimate, not a guarantee. */
+  @Column({ type: 'timestamptz', nullable: true })
+  expectedDeliveryBy?: Date;
+
   /** Which of the three sources fired SHIPPED/IN_TRANSIT → DELIVERED (spec §2.2). */
   @Column({ nullable: true })
   deliveryConfirmedBy?: 'BUYER' | 'COURIER' | 'AUTO_TIMEOUT';

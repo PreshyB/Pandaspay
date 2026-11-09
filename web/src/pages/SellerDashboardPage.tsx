@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import type { Order, Payment } from '../api/types';
 import { StatusBadges } from '../components/StatusBadges';
 import { formatMoney } from '../lib/money';
+import { snapshotLabel } from '../lib/delivery';
 import { useDevIdentity } from '../lib/useDevIdentity';
 
 type OrderWithPayment = Order & { payment: Payment };
@@ -61,7 +62,7 @@ export default function SellerDashboardPage() {
       <div className="page-head">
         <h1>Orders</h1>
         <p className="muted" style={{ margin: 0 }}>
-          {seller.fullName}
+          {seller.fullName} · <Link className="link" to="/seller/delivery">Delivery and shipping</Link>
         </p>
       </div>
 
@@ -108,6 +109,14 @@ export default function SellerDashboardPage() {
                 </div>
 
                 <StatusBadges orderStatus={order.status} paymentStatus={order.payment.protectionStatus} />
+
+                {order.deliveryAddress?.street && (
+                  <p className="orders__ship">
+                    <strong>Ship to:</strong> {order.deliveryAddress.recipientName}, {order.deliveryAddress.phone},{' '}
+                    {order.deliveryAddress.street}, {order.deliveryAddress.city}, {order.deliveryAddress.state}
+                    {order.deliveryOption && <> · {snapshotLabel(order.deliveryOption)}</>}
+                  </p>
+                )}
 
                 <div className="orders__actions">
                   {canAccept && (

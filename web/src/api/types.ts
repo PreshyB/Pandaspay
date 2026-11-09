@@ -38,6 +38,26 @@ export interface Product {
   isActive: boolean;
 }
 
+export type DeliveryZone = 'WITHIN_STATE' | 'OUTSIDE_STATE';
+export type DeliverySpeed = 'STANDARD' | 'EXPRESS';
+
+export interface DeliveryOption {
+  id: string;
+  sellerId: string;
+  zone: DeliveryZone;
+  speed: DeliverySpeed;
+  feeMinor: string;
+  minHours: number;
+  maxHours: number;
+  isActive: boolean;
+}
+
+export interface SellerDelivery {
+  storeState: string | null;
+  storeCity: string | null;
+  options: DeliveryOption[];
+}
+
 export interface OrderItem {
   id: string;
   productId: string;
@@ -54,6 +74,11 @@ export interface Order {
   totalMinor: string;
   currency: string;
   deliveryConfirmedBy?: 'BUYER' | 'COURIER' | 'AUTO_TIMEOUT';
+  deliveryFeeMinor?: string;
+  deliveryOption?: { zone: DeliveryZone; speed: DeliverySpeed; feeMinor: string; minHours: number; maxHours: number };
+  deliveryAddress?: Record<string, string>;
+  shippedAt?: string;
+  expectedDeliveryBy?: string;
   deliveredAt?: string;
   createdAt: string;
 }

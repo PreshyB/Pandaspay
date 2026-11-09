@@ -11,6 +11,7 @@ import OrderStatusPage from './pages/OrderStatusPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerNewProductPage from './pages/SellerNewProductPage';
 import CheckoutPage from './pages/CheckoutPage';
+import SellerDeliveryPage from './pages/SellerDeliveryPage';
 import StartSellingPage from './pages/StartSellingPage';
 
 /** Scrolls to #section after navigation, and to the top on a plain page change. */
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/orders/:orderId" element={<OrderStatusPage />} />
           <Route path="/seller" element={<SellerDashboardPage />} />
+          <Route path="/seller/delivery" element={<SellerDeliveryPage />} />
           <Route path="/seller/new-product" element={<SellerNewProductPage />} />
         </Routes>
       </main>

@@ -5,6 +5,7 @@ import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
+import { DeliveryModule } from './delivery/delivery.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PaymentProvidersModule } from './payment-providers/payment-providers.module';
@@ -19,6 +20,7 @@ import { SettlementModule } from './settlement/settlement.module';
     DatabaseModule,
     UsersModule,
     ProductsModule,
+    DeliveryModule,
     OrdersModule,
     PaymentsModule,
     PaymentProvidersModule,

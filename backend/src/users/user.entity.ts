@@ -20,6 +20,13 @@ export class User {
   @Column()
   fullName: string;
 
+  /** Seller's registered store location. Delivery zones are named from the state. */
+  @Column({ type: 'varchar', nullable: true })
+  storeState?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  storeCity?: string;
+
   @Column({ type: 'simple-array', default: UserRole.BUYER })
   roles: UserRole[];
 

@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Product } from '../api/types';
+import type { Product, SellerDelivery } from '../api/types';
+import { feeLabel, isWithinState, optionLabel, speedLabel, windowLabel, zoneLabel } from '../lib/delivery';
 import { registerAccount, useAccount } from '../lib/account';
 import { loadSelection, type Selection } from '../lib/checkout';
 import { formatMoney } from '../lib/money';
@@ -32,6 +33,8 @@ export default function CheckoutPage() {
 
   const [address, setAddress] = useState<Address | null>(null);
   const [draft, setDraft] = useState<Address>({ recipientName: '', phone: '', street: '', city: '', state: '', landmark: '' });
+  const [delivery, setDelivery] = useState<SellerDelivery | null>(null);
+  const [optionId, setOptionId] = useState<string | null>(null);
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +45,14 @@ export default function CheckoutPage() {
       .then(setProduct)
       .catch(() => setLoadError(true));
   }, [slug]);
+
+  useEffect(() => {
+    if (!product) return;
+    api
+      .getSellerDelivery(product.sellerId)
+      .then(setDelivery)
+      .catch(() => setError('Could not load this seller\'s delivery options.'));
+  }, [product]);
 
   useEffect(() => {
     if (user) setDraft((d) => ({ ...d, recipientName: d.recipientName || user.fullName }));
@@ -74,6 +85,13 @@ export default function CheckoutPage() {
   const step = !user ? 0 : !address ? 1 : 2;
   const subtotal = BigInt(product.priceMinor) * BigInt(selection.quantity);
 
+  const storeState = delivery?.storeState ?? null;
+  const within = draft.state ? isWithinState(draft.state, storeState) : null;
+  const zoneOptions =
+    delivery && draft.state ? delivery.options.filter((o) => o.zone === (within ? 'WITHIN_STATE' : 'OUTSIDE_STATE')) : [];
+  const chosen = zoneOptions.find((o) => o.id === optionId && o.isActive) ?? null;
+  const deliveryFee = chosen ? BigInt(chosen.feeMinor) : BigInt(0);
+
   async function signUp(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -93,7 +111,7 @@ export default function CheckoutPage() {
   }
 
   async function pay() {
-    if (!user || !address || !product) return;
+    if (!user || !address || !product || !chosen) return;
     setBusy(true);
     setError(null);
     try {
@@ -101,6 +119,7 @@ export default function CheckoutPage() {
         buyerId: user.id,
         sellerId: product.sellerId,
         items: [{ productId: product.id, quantity: selection!.quantity, variant: selection!.variant }],
+        deliveryOptionId: chosen?.id,
         deliveryAddress: { ...address },
       });
       navigate(`/orders/${order.id}`);
@@ -111,7 +130,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const chosen = Object.entries(selection.variant);
+  const picked = Object.entries(selection.variant);
 
   return (
     <div className="co">
@@ -191,12 +210,46 @@ export default function CheckoutPage() {
               <input id="d-land" value={draft.landmark} onChange={(e) => setDraft({ ...draft, landmark: e.target.value })} placeholder="Near the market gate" />
             </div>
 
-            <div className="notice notice--neutral">
-              <strong>Delivery option and fee:</strong> the seller's delivery options and courier pricing aren't set up yet in this
-              test version, so no delivery fee is added.
-            </div>
+            {draft.state && delivery && (
+              <fieldset className="choices" style={{ marginTop: '0.5rem' }}>
+                <legend>Delivery option</legend>
+                <p className="field__hint" style={{ marginTop: 0 }}>
+                  Set by this seller for {within ? `deliveries within ${storeState}` : `deliveries outside ${storeState ?? 'their state'}`}.
+                </p>
+                {zoneOptions.length === 0 ? (
+                  <div className="nozone">
+                    <h3>This seller doesn't deliver here yet</h3>
+                    <p>
+                      {storeState
+                        ? `They haven't set up delivery ${within ? 'within' : 'outside'} ${storeState}. Try another address.`
+                        : "They haven't set up delivery yet."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="dopts">
+                    {zoneOptions.map((o) => (
+                      <label key={o.id} className={`dopt${chosen?.id === o.id ? ' dopt--on' : ''}${o.isActive ? '' : ' dopt--off'}`}>
+                        <input
+                          type="radio"
+                          name="delivery-option"
+                          disabled={!o.isActive}
+                          checked={chosen?.id === o.id}
+                          onChange={() => setOptionId(o.id)}
+                        />
+                        <span>
+                          {speedLabel(o.speed)} · {zoneLabel(o.zone, storeState)}
+                          <small>{o.isActive ? windowLabel(o.minHours, o.maxHours) : 'Unavailable right now'}</small>
+                        </span>
+                        <b>{feeLabel(o.feeMinor, product.currency)}</b>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <p className="field__hint">New seller: their on-time delivery record builds as orders are delivered.</p>
+              </fieldset>
+            )}
 
-            <button className="btn btn--lg" type="submit" disabled={!draft.state}>
+            <button className="btn btn--lg" type="submit" disabled={!draft.state || !chosen}>
               Continue to payment
             </button>
           </form>
@@ -211,6 +264,13 @@ export default function CheckoutPage() {
                 Change
               </button>
             </p>
+
+            {chosen && (
+              <p className="eta" style={{ marginBottom: '1rem' }}>
+                <strong>{optionLabel(chosen, storeState)}</strong>
+                {feeLabel(chosen.feeMinor, product.currency)} delivery. You'll see an expected-by date once the seller ships.
+              </p>
+            )}
 
             <div className="notice notice--protected">
               <strong>Payment Protected.</strong> After your payment is verified, BuyBridge holds it under its protection terms until
@@ -234,9 +294,9 @@ export default function CheckoutPage() {
         <h2>Your order</h2>
         {product.brand && <p className="eyebrow" style={{ marginBottom: '0.25rem' }}>{product.brand}</p>}
         <p className="co__item">{product.title}</p>
-        {chosen.length > 0 && (
+        {picked.length > 0 && (
           <ul className="co__opts">
-            {chosen.map(([k, v]) => (
+            {picked.map(([k, v]) => (
               <li key={k}>
                 {k}: <strong>{v}</strong>
               </li>
@@ -252,8 +312,20 @@ export default function CheckoutPage() {
           </div>
           <div>
             <dt>Delivery</dt>
-            <dd className="muted">Not added yet</dd>
+            <dd className={chosen ? '' : 'muted'}>{chosen ? feeLabel(chosen.feeMinor, product.currency) : 'Choose at delivery'}</dd>
           </div>
+          <div>
+            <dt>BuyBridge protection</dt>
+            <dd className="muted">Fee not set yet</dd>
+          </div>
+          {chosen && (
+            <div>
+              <dt>
+                <strong>Total</strong>
+              </dt>
+              <dd>{formatMoney((subtotal + deliveryFee).toString(), product.currency)}</dd>
+            </div>
+          )}
         </dl>
         <p className="gs__fine">The final amount is calculated by BuyBridge when you place the order.</p>
         <Link className="link" to={`/p/${slug}`}>

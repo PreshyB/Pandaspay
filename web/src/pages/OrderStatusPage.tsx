@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Order, Payment } from '../api/types';
+import { DeliveryTracking } from '../components/DeliveryTracking';
 import { OrderSpan, statusNotice } from '../components/OrderSpan';
 import { StatusBadges } from '../components/StatusBadges';
 import { formatMoney } from '../lib/money';
@@ -82,6 +83,8 @@ export default function OrderStatusPage() {
         <div className="order__badges">
           <StatusBadges orderStatus={order.status} paymentStatus={payment.protectionStatus} />
         </div>
+
+        <DeliveryTracking order={order} />
 
         {error && <p className="error">{error}</p>}
 
