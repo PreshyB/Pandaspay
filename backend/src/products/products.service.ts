@@ -58,7 +58,6 @@ export class ProductsService {
       brand: input.brand?.trim() || undefined,
       options: options.length ? options : undefined,
       currency: input.currency ?? 'NGN',
-      stockQuantity: input.stockQuantity ?? 0,
       slug: randomUUID().slice(0, 8),
     });
     return this.products.save(product);
