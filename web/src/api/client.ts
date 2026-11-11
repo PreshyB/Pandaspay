@@ -1,24 +1,71 @@
-import type { CreateOrderResponse, Order, Payment, Product } from './types';
+import { authHeaders } from '../lib/session';
+import type { CreateOrderResponse, Dispute, DeliveryOption, DeliverySpeed, DeliveryZone, Order, Payment, Product, SellerDelivery } from './types';
 
 // Empty in dev (vite.config.ts proxies /api to the backend). Set
 // VITE_API_BASE_URL at build time to point a production build at a
-// deployed backend origin, e.g. https://api.pandaspay.com.
+// deployed backend origin, e.g. https://api.buybridge.example.
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api`;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+    let message = body;
+    try {
+      const parsed = JSON.parse(body) as { message?: string | string[] };
+      if (parsed.message) message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message;
+    } catch {
+      /* not JSON: keep the raw text */
+    }
+    throw new Error(message || `${res.status} ${res.statusText}`);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
 export const api = {
+  getSellerDelivery: (sellerId: string) => request<SellerDelivery>(`/delivery/seller/${sellerId}`),
+
+  setStoreLocation: (sellerId: string, storeState: string, storeCity?: string) =>
+    request<unknown>(`/delivery/seller/${sellerId}/location`, {
+      method: 'PATCH',
+      body: JSON.stringify({ storeState, storeCity }),
+    }),
+
+  saveDeliveryOption: (input: {
+    sellerId: string;
+    zone: DeliveryZone;
+    speed: DeliverySpeed;
+    feeMinor: number;
+    minHours: number;
+    maxHours: number;
+  }) => request<DeliveryOption>('/delivery/options', { method: 'POST', body: JSON.stringify(input) }),
+
+  setDeliveryActive: (optionId: string, sellerId: string, isActive: boolean) =>
+    request<DeliveryOption>(`/delivery/options/${optionId}/active?sellerId=${sellerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    }),
+
+  listDisputes: () => request<Dispute[]>('/disputes'),
+  getDispute: (id: string) => request<Dispute | null>(`/disputes/${id}`),
+  resolveDispute: (
+    id: string,
+    decision: { kind: 'seller' | 'buyer' } | { kind: 'split'; releaseMinor: string; refundMinor: string },
+    notes: string,
+  ) => {
+    const body: Record<string, unknown> = { resolvedById: 'admin-test', notes };
+    if (decision.kind === 'split') {
+      body.releaseMinor = decision.releaseMinor;
+      body.refundMinor = decision.refundMinor;
+      body.sellerPayoutDestination = { note: 'placeholder: payout destinations are not stored yet' };
+    }
+    return request<Dispute>(`/disputes/${id}/resolve-${decision.kind}`, { method: 'PATCH', body: JSON.stringify(body) });
+  },
+
   getProductBySlug: (slug: string) => request<Product>(`/products/${slug}`),
 
   createProduct: (input: {
@@ -27,12 +74,16 @@ export const api = {
     description?: string;
     priceMinor: string;
     stockQuantity?: number;
+    brand?: string;
+    options?: { name: string; values: string[] }[];
+    skus?: { attributes: Record<string, string>; stockQuantity: number }[];
   }) => request<Product>('/products', { method: 'POST', body: JSON.stringify(input) }),
 
   createOrder: (input: {
     buyerId: string;
     sellerId: string;
     items: { productId: string; quantity: number; variant?: Record<string, unknown> }[];
+    deliveryOptionId?: string;
     deliveryAddress?: Record<string, unknown>;
   }) => request<CreateOrderResponse>('/orders', { method: 'POST', body: JSON.stringify(input) }),
 

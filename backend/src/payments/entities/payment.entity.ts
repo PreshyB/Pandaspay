@@ -17,8 +17,8 @@ import { PaymentProtectionStatus } from '../../common/enums/payment-protection-s
  *
  * Model B (Fund Custody & Settlement Model): the licensed partner holds
  * the money in its designated/collection account. This row never
- * represents Pandas Pay holding or owning funds — it is the operational
- * mirror of what happened at the partner, plus Pandas Pay's own
+ * represents BuyBridge holding or owning funds — it is the operational
+ * mirror of what happened at the partner, plus BuyBridge's own
  * protection-window / dispute / disposition bookkeeping.
  */
 @Entity('payments')

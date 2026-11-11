@@ -1,4 +1,4 @@
-**PANDAS PAY**
+**BUYBRIDGE**
 
 **Order Status & Payment Protection**
 
@@ -16,12 +16,12 @@ fund-flow
 > engineering convention, not yet locked. Everything that depends on the
 > Model B fund-flow (the definitions of RELEASED, REFUND_APPROVED and
 > PARTIALLY_RESOLVED) should be re-checked once a specific licensed
-> partner and contract are confirmed --- see Pandas Pay --- Fund Custody
+> partner and contract are confirmed --- see BuyBridge --- Fund Custody
 > & Settlement Model.*
 
 **1. Why Two Independent State Machines**
 
-Every order in Pandas Pay is tracked on two state machines at once,
+Every order in BuyBridge is tracked on two state machines at once,
 never collapsed into a single status line:
 
 -   Order status --- the fulfillment/delivery track. Owned by the
@@ -179,7 +179,7 @@ of copy.
                                         licensed partner\'s designated/collection
                                         account (Model B). This is what \"Payment
                                         protection active\" means on the buyer
-                                        success screen --- Pandas Pay has recorded
+                                        success screen --- BuyBridge has recorded
                                         the protection, not taken custody of the
                                         money itself.
 
@@ -396,7 +396,7 @@ disposition conflict for audit rather than silently retrying.
 
 -   Licensed partner (via webhook): confirms a payment (payment →
     PROTECTED), a payout, or a refund (payment → RELEASED / REFUNDED).
-    Pandas Pay never marks a transaction RELEASED or REFUNDED on its own
+    BuyBridge never marks a transaction RELEASED or REFUNDED on its own
     say-so --- only on the partner\'s confirmation.
 
 -   Admin (Payment Protection Operations): resolves a dispute to
@@ -440,7 +440,7 @@ own reference id, since the same webhook can be redelivered.
 
 -   RELEASED is redefined per the Fund Custody & Settlement Model: a
     payout instruction sent to (and confirmed by) the licensed partner
-    --- never Pandas Pay moving money on its own books.
+    --- never BuyBridge moving money on its own books.
 
 **9. Suggested Next Steps**
 
@@ -462,5 +462,5 @@ own reference id, since the same webhook can be redelivered.
     idempotency-key logic is reviewed once, in one place, rather than
     reconstructed ad hoc per handler.
 
-*Prepared for Pandas Pay · Engineering specification, to be ratified by
+*Prepared for BuyBridge · Engineering specification, to be ratified by
 the backend team before implementation.*

@@ -28,6 +28,10 @@ export class OrderItem {
   @Column({ type: 'bigint' })
   unitPriceMinor: string;
 
+  /** The SKU whose stock this line reserved, if the product has SKUs. */
+  @Column({ type: 'varchar', nullable: true })
+  skuId?: string;
+
   @Column({ type: 'jsonb', nullable: true })
   variant?: Record<string, unknown>;
 }

@@ -1,4 +1,4 @@
-# Pandas Pay — Backend
+# BuyBridge — Backend
 
 NestJS + TypeORM + PostgreSQL API implementing the commerce, payment-protection
 and settlement-orchestration layer described in the master blueprint, built
@@ -93,8 +93,14 @@ curl -X POST localhost:3000/webhooks/palmpay \
 
 ## What's deliberately not built yet
 
-- Auth/sessions (every endpoint currently trusts the caller — fine for this
-  slice, not for anything further).
+- Real email delivery of sign-in codes. Sign-in is an emailed one-time code
+  with signed session tokens and ownership/role checks (see `.env.example`:
+  `AUTH_SECRET`, `AUTH_ENFORCED`, `AUTH_DEV_OTP`, `ADMIN_EMAILS`). Until an email
+  provider is wired up, codes are returned in the API response in dev and only
+  logged in production. Enforcement is always on in production; off by default
+  elsewhere so the mobile app (no sign-in yet) keeps working.
+- Seller identity/payout verification. Seller activation is an application that
+  an admin approves or rejects (audited); no ID documents are collected yet.
 - Courier/tracking webhook ingestion (`IN_TRANSIT`, `DELIVERY_FAILED` can be
   driven manually via the order endpoints for now).
 - Seller payout-destination storage (the settlement scheduler currently

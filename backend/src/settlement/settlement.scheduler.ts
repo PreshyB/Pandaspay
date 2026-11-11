@@ -50,8 +50,13 @@ export class SettlementScheduler {
     }
   }
 
+  /**
+   * Automatic payout is OFF by default: sellers request a payout and an admin approves it
+   * (PayoutsService). Set AUTO_PAYOUT=true to restore the old behaviour for local testing.
+   */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async sweepRelease(): Promise<void> {
+    if (process.env.AUTO_PAYOUT !== 'true') return;
     const releasable = await this.payments.find({
       where: { protectionStatus: PaymentProtectionStatus.RELEASABLE },
       relations: ['order', 'order.seller'],

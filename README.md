@@ -1,4 +1,4 @@
-# Pandas Pay
+# BuyBridge
 
 A social-commerce payment-protection and transaction-management platform for
 sellers on WhatsApp, Instagram, Facebook, TikTok and Telegram — initial
@@ -30,8 +30,8 @@ once their docs land, should touch one file.
 The product/architecture docs this code is built from live in this repo's
 history as reference (converted to markdown for engineering use):
 
-- Pandas Pay — Master Product, Technology, Architecture, Security &
+- BuyBridge — Master Product, Technology, Architecture, Security &
   Development Blueprint
-- Pandas Pay — Order Status & Payment Protection State-Machine
+- BuyBridge — Order Status & Payment Protection State-Machine
   Specification v1.0
-- Pandas Pay — Fund Custody & Settlement Model
+- BuyBridge — Fund Custody & Settlement Model

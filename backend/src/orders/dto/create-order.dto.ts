@@ -25,6 +25,10 @@ export class CreateOrderDto {
   items: OrderItemDto[];
 
   @IsOptional()
+  @IsUUID()
+  deliveryOptionId?: string;
+
+  @IsOptional()
   deliveryAddress?: Record<string, unknown>;
 
   @IsOptional()

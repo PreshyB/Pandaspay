@@ -11,7 +11,7 @@ import {
 
 /**
  * Stand-in for PalmPay while their marketplace/platform API documentation
- * is still pending (per Pandas Pay: Fund Custody & Settlement Model §5 —
+ * is still pending (per BuyBridge: Fund Custody & Settlement Model §5 —
  * PalmPay's licensing is fine in principle, but public API docs are thin,
  * and a direct business conversation is needed before building against
  * the real thing).
