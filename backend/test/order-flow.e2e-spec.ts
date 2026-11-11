@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { AppModule } from '../src/app.module';
 import { PaymentProtectionStatus } from '../src/common/enums/payment-protection-status.enum';
 import { OrderStatus } from '../src/common/enums/order-status.enum';
@@ -75,7 +75,7 @@ describe('Order -> Payment Protection flow (e2e)', () => {
       .send({ eventId: `evt-${orderId}-confirmed`, eventType: 'payment.confirmed', providerTransactionRef })
       .expect(201);
 
-    const paymentAfterConfirm = await dataSource.getRepository(Payment).findOneBy({ orderId });
+    const paymentAfterConfirm = await dataSource.getRepository(Payment).findOneByOrFail({ orderId });
     expect(paymentAfterConfirm.protectionStatus).toBe(PaymentProtectionStatus.PROTECTED);
 
     // A redelivered webhook must be a no-op (idempotency, spec §7).
@@ -83,7 +83,7 @@ describe('Order -> Payment Protection flow (e2e)', () => {
       .post('/webhooks/palmpay')
       .send({ eventId: `evt-${orderId}-confirmed`, eventType: 'payment.confirmed', providerTransactionRef })
       .expect(201);
-    const paymentAfterRedelivery = await dataSource.getRepository(Payment).findOneBy({ orderId });
+    const paymentAfterRedelivery = await dataSource.getRepository(Payment).findOneByOrFail({ orderId });
     expect(paymentAfterRedelivery.protectionStatus).toBe(PaymentProtectionStatus.PROTECTED);
 
     // 3. Seller accepts (now allowed, payment is PROTECTED).
@@ -104,9 +104,9 @@ describe('Order -> Payment Protection flow (e2e)', () => {
     expect(delivered.body.deliveryConfirmedBy).toBe('BUYER');
 
     // 6. Protection window elapses with no dispute -> RELEASABLE.
-    const payment = await dataSource.getRepository(Payment).findOneBy({ orderId });
+    const payment = await dataSource.getRepository(Payment).findOneByOrFail({ orderId });
     await paymentsService.markReleasable(payment.id);
-    const releasable = await dataSource.getRepository(Payment).findOneBy({ orderId });
+    const releasable = await dataSource.getRepository(Payment).findOneByOrFail({ orderId });
     expect(releasable.protectionStatus).toBe(PaymentProtectionStatus.RELEASABLE);
 
     // 7. Settlement job releases funds (disposition lock acquired, payout instruction sent).

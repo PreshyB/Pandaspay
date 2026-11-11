@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { PaymentProtectionStatus as S } from '../src/common/enums/payment-protection-status.enum';
@@ -200,7 +200,7 @@ describe('Money safety, permissions and reconciliation (e2e)', () => {
         .expect(403); // not an approved seller
       await api().get('/disputes').set('Authorization', `Bearer ${tokenA}`).expect(403);
       await api().get('/sellers/applications').set('Authorization', `Bearer ${tokenA}`).expect(403);
-      await api().get(`/users/${b.id}`).set('Authorization', `Bearer ${tokenA}`).expect(200).expect((res) => {
+      await api().get(`/users/${b.id}`).set('Authorization', `Bearer ${tokenA}`).expect(200).expect((res: { body: Record<string, unknown> }) => {
         expect(res.body.email).toBeUndefined(); // other people's accounts show a name only
       });
     });
