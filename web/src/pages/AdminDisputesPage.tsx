@@ -20,8 +20,8 @@ export const ageOf = (iso: string) => {
 export function AdminBanner() {
   return (
     <div className="notice notice--amber">
-      <strong>Admin screens, test mode.</strong> There is no admin login or approval step yet, so anyone with this link can decide a
-      dispute. This must be locked down before real money moves.
+      <strong>Admins only.</strong> Decisions here are recorded in the audit log. When the server runs in test mode without enforced
+      sign-in, these screens are open to anyone with the link, so turn enforcement on before real money moves.
     </div>
   );
 }

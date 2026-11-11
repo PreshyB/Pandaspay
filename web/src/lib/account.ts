@@ -1,77 +1,38 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createUser, getUser, type User } from '../api/users';
+import { createUser, getMe, type User } from '../api/users';
+import { getToken, SESSION_EVENT, setToken } from './session';
 
 /**
- * TEMPORARY account stand-in (no real auth yet; see backend/README.md).
- *
- * Follows the blueprint's one-account model: signing up creates ONE user
- * with buyer capability. "Start selling" later switches seller tools on for
- * that same user (verification/KYC is not built yet, so activation is local
- * for now). The ids live under the keys the existing pages already read.
- * Returning users on a new browser can't sign in until real auth exists.
+ * Account state for this browser. One account per person (blueprint): everyone is a buyer,
+ * and selling is switched on only when an admin approves a seller application, which adds
+ * the SELLER role on the server. Signing in uses an emailed one-time code; the resulting
+ * token lives in session.ts.
  */
-const BUYER_KEY = 'pandaspay.dev.buyerUserId';
-const SELLER_KEY = 'pandaspay.dev.sellerUserId';
-const EVENT = 'buybridge:account';
 
-function get(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function set(key: string, value: string | null) {
-  try {
-    if (value) localStorage.setItem(key, value);
-    else localStorage.removeItem(key);
-  } catch {
-    /* storage unavailable: account works for this page view only */
-  }
-  window.dispatchEvent(new Event(EVENT));
-}
-
+/** Creates the account. The person still has to confirm their email with a code to sign in. */
 export async function registerAccount(input: { fullName: string; email: string; phone?: string }): Promise<User> {
-  const user = await createUser({
-    fullName: input.fullName,
-    email: input.email,
-    phone: input.phone || undefined,
-    roles: ['BUYER'],
-  });
-  set(BUYER_KEY, user.id);
-  return user;
+  return createUser({ fullName: input.fullName, email: input.email, phone: input.phone || undefined });
 }
 
-/** Switch seller tools on for the signed-in account (test mode: no verification step yet). */
-export function activateSelling(userId: string) {
-  set(SELLER_KEY, userId);
+export function signInWithToken(token: string) {
+  setToken(token);
 }
 
 export function signOutAccount() {
-  try {
-    localStorage.removeItem(BUYER_KEY);
-    localStorage.removeItem(SELLER_KEY);
-  } catch {
-    /* ignore */
-  }
-  window.dispatchEvent(new Event(EVENT));
+  setToken(null);
 }
 
 export function useAccount() {
   const [user, setUser] = useState<User | null>(null);
-  const [isSeller, setIsSeller] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    const id = get(BUYER_KEY) ?? get(SELLER_KEY);
-    setIsSeller(!!id && get(SELLER_KEY) === id);
-    if (!id) {
+    if (!getToken()) {
       setUser(null);
       setLoading(false);
       return;
     }
-    getUser(id)
+    getMe()
       .then(setUser)
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
@@ -79,9 +40,17 @@ export function useAccount() {
 
   useEffect(() => {
     load();
-    window.addEventListener(EVENT, load);
-    return () => window.removeEventListener(EVENT, load);
+    window.addEventListener(SESSION_EVENT, load);
+    return () => window.removeEventListener(SESSION_EVENT, load);
   }, [load]);
 
-  return { user, isSeller, loading };
+  const roles = user?.roles ?? [];
+  return {
+    user,
+    loading,
+    isSeller: roles.includes('SELLER'),
+    isAdmin: roles.includes('ADMIN'),
+    sellerStatus: user?.sellerStatus ?? 'NONE',
+    refresh: load,
+  };
 }

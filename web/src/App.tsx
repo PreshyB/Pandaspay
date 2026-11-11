@@ -13,6 +13,8 @@ import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerNewProductPage from './pages/SellerNewProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import AdminSellersPage from './pages/AdminSellersPage';
+import SignInPage from './pages/SignInPage';
 import AdminDisputesPage from './pages/AdminDisputesPage';
 import AdminDisputePage from './pages/AdminDisputePage';
 import SellerDeliveryPage from './pages/SellerDeliveryPage';
@@ -66,12 +68,14 @@ export default function App() {
       <main className="main">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/sign-in" element={<SignInPage />} />
           <Route path="/get-started" element={<GetStartedPage />} />
           <Route path="/orders" element={<MyOrdersPage />} />
           <Route path="/start-selling" element={<StartSellingPage />} />
           <Route path="/p/:slug" element={<ProductPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/admin/sellers" element={<AdminSellersPage />} />
           <Route path="/admin/disputes" element={<AdminDisputesPage />} />
           <Route path="/admin/disputes/:disputeId" element={<AdminDisputePage />} />
           <Route path="/orders/:orderId" element={<OrderStatusPage />} />

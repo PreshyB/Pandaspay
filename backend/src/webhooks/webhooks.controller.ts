@@ -1,3 +1,4 @@
+import { Public } from '../auth/authz';
 import { BadRequestException, Body, Controller, Headers, Post } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -36,6 +37,7 @@ export class WebhooksController {
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProviderService,
   ) {}
 
+  @Public() // authenticated by the provider's signature, not a user session
   @Post('palmpay')
   async handlePalmPay(@Body() body: PalmPayWebhookBody, @Headers() headers: Record<string, string>) {
     if (!this.provider.verifyWebhookSignature(JSON.stringify(body), headers)) {

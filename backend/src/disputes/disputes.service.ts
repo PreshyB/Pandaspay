@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Dispute, DisputeStatus } from './entities/dispute.entity';
@@ -47,6 +47,13 @@ export class DisputesService {
   async getWithContext(disputeId: string) {
     const list = await this.listWithContext();
     return list.find((d) => d.id === disputeId) ?? null;
+  }
+
+  /** Only the buyer on the order can open a dispute on its payment. */
+  async assertBuyerOfPayment(paymentId: string, userId: string) {
+    const payment = await this.dataSource.getRepository(Payment).findOneByOrFail({ id: paymentId });
+    const order = await this.dataSource.getRepository(Order).findOneByOrFail({ id: payment.orderId });
+    if (order.buyerId !== userId) throw new ForbiddenException('Only the buyer can open a dispute on this payment.');
   }
 
   async open(paymentId: string, openedById: string, reason: string, details?: string): Promise<Dispute> {

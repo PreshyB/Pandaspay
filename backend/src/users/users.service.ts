@@ -7,7 +7,6 @@ export interface CreateUserInput {
   email: string;
   fullName: string;
   phone?: string;
-  roles?: UserRole[];
 }
 
 @Injectable()
@@ -15,7 +14,8 @@ export class UsersService {
   constructor(@InjectRepository(User) private readonly users: Repository<User>) {}
 
   async create(input: CreateUserInput): Promise<User> {
-    const user = this.users.create({ ...input, roles: input.roles ?? [UserRole.BUYER] });
+    // Everyone starts as a buyer. Roles are never taken from the request: seller comes from admin approval, admin from ADMIN_EMAILS.
+    const user = this.users.create({ email: input.email?.trim().toLowerCase(), fullName: input.fullName?.trim(), phone: input.phone, roles: [UserRole.BUYER] });
     try {
       return await this.users.save(user);
     } catch (err) {

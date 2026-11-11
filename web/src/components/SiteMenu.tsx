@@ -9,7 +9,7 @@ export function SiteMenu() {
   const btn = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const location = useLocation();
-  const { user } = useAccount();
+  const { user, isAdmin } = useAccount();
 
   useEffect(() => setOpen(false), [location.pathname, location.hash]);
 
@@ -91,18 +91,34 @@ export function SiteMenu() {
             Seller dashboard
           </Link>
 
-          <div className="menu__sep" />
-          <p className="menu__group">Admin (test)</p>
-          <Link className="menu__item" to="/admin/disputes">
-            Disputes
-          </Link>
+          {(isAdmin || !user) && (
+            <>
+              <div className="menu__sep" />
+              <p className="menu__group">Admin{user ? '' : ' (test)'}</p>
+              <Link className="menu__item" to="/admin/sellers">
+                Seller applications
+              </Link>
+              <Link className="menu__item" to="/admin/disputes">
+                Disputes
+              </Link>
+            </>
+          )}
+
+          {!user && (
+            <>
+              <div className="menu__sep" />
+              <Link className="menu__item" to="/sign-in">
+                Sign in
+              </Link>
+            </>
+          )}
 
           {user && (
             <>
               <div className="menu__sep" />
               <p className="menu__group">Signed in as {user.fullName}</p>
               <button type="button" className="menu__item" onClick={signOutAccount}>
-                Sign out of this browser
+                Sign out
               </button>
             </>
           )}

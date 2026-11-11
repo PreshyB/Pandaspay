@@ -1,3 +1,4 @@
+import { authHeaders } from '../lib/session';
 import type { CreateOrderResponse, Dispute, DeliveryOption, DeliverySpeed, DeliveryZone, Order, Payment, Product, SellerDelivery } from './types';
 
 // Empty in dev (vite.config.ts proxies /api to the backend). Set
@@ -8,7 +9,7 @@ const BASE = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api`;
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
   });
   if (!res.ok) {
     const body = await res.text();

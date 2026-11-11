@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { SellerDelivery } from '../api/types';
 import { feeLabel, isSameCity, isWithinState, optionLabel, speedLabel, windowLabel, zoneLabel } from '../lib/delivery';
+import { CodeStep } from '../components/CodeStep';
 import { registerAccount, useAccount } from '../lib/account';
 import { lineKey, removeLines } from '../lib/cart';
 import { clearDraft, loadDraft, type CheckoutDraft } from '../lib/checkout';
@@ -36,6 +37,7 @@ export default function CheckoutPage() {
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsCode, setNeedsCode] = useState(false);
 
   useEffect(() => {
     if (!draftLoaded) return;
@@ -84,6 +86,7 @@ export default function CheckoutPage() {
     setError(null);
     try {
       await registerAccount({ fullName: fullName.trim(), email: email.trim(), phone: phone.trim() });
+      setNeedsCode(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -131,7 +134,9 @@ export default function CheckoutPage() {
           ))}
         </ol>
 
-        {step === 0 && (
+        {step === 0 && needsCode && <CodeStep email={email.trim()} />}
+
+        {step === 0 && !needsCode && (
           <form onSubmit={signUp}>
             <h1>Create your account</h1>
             <p>Just the basics. Your choices are saved, and you'll go straight on to delivery.</p>
@@ -154,7 +159,7 @@ export default function CheckoutPage() {
               {busy ? 'Creating account…' : 'Continue to delivery'}
             </button>
             <p className="gs__fine">
-              No bank details or ID needed to buy. Your account is saved in this browser for now; full login is coming.
+              No bank details or ID needed to buy. We'll email you a code to confirm it's you. Already registered? <Link to="/sign-in">Sign in</Link>
             </p>
           </form>
         )}

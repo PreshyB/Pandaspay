@@ -6,6 +6,20 @@ export enum UserRole {
   ADMIN = 'ADMIN',
 }
 
+export enum SellerStatus {
+  NONE = 'NONE',
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export interface SellerApplication {
+  businessName: string;
+  socialLink?: string;
+  note?: string;
+  submittedAt: string;
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -32,6 +46,19 @@ export class User {
 
   @Column({ nullable: true })
   passwordHash?: string;
+
+  /** Seller activation: NONE -> PENDING (applied) -> APPROVED or REJECTED (admin). SELLER role is added only on approval. */
+  @Column({ type: 'varchar', default: SellerStatus.NONE })
+  sellerStatus: SellerStatus;
+
+  @Column({ type: 'jsonb', nullable: true })
+  sellerApplication?: SellerApplication | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  sellerReviewNote?: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  sellerReviewedAt?: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

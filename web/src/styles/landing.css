@@ -1607,3 +1607,13 @@ form .notice,
     grid-template-columns: 1fr auto;
   }
 }
+
+.codestep {
+  max-width: 28rem;
+}
+
+.codestep #otp {
+  font-size: 1.5rem;
+  letter-spacing: 0.4em;
+  text-align: center;
+}

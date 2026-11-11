@@ -3,6 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './auth/auth.module';
+import { AuditModule } from './audit/audit.module';
+import { SellersModule } from './sellers/sellers.module';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
 import { DeliveryModule } from './delivery/delivery.module';
@@ -18,7 +21,10 @@ import { SettlementModule } from './settlement/settlement.module';
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     ScheduleModule.forRoot(),
     DatabaseModule,
+    AuditModule,
+    AuthModule,
     UsersModule,
+    SellersModule,
     ProductsModule,
     DeliveryModule,
     OrdersModule,

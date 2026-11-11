@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { CodeStep } from '../components/CodeStep';
 import { registerAccount, signOutAccount, useAccount } from '../lib/account';
 
 export default function GetStartedPage() {
@@ -28,6 +29,8 @@ export default function GetStartedPage() {
   }
 
   if (loading) return <p className="muted">Loading…</p>;
+
+  if (!user && justCreated) return <CodeStep email={email.trim()} />;
 
   if (user) {
     return (
@@ -130,7 +133,7 @@ export default function GetStartedPage() {
           {busy ? 'Creating account…' : 'Create account'}
         </button>
         <p className="gs__fine">
-          Your account is saved in this browser for now. Signing in from another device arrives with full login.
+          We'll email you a code to confirm it's you. Already have an account? <Link to="/sign-in">Sign in</Link>
         </p>
       </form>
     </div>
