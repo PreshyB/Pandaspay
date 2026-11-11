@@ -108,3 +108,58 @@ export async function reviewSeller(id: string, decision: 'approve' | 'reject', r
   if (!res.ok) throw await failure(res, 'That decision could not be saved.');
   return res.json();
 }
+
+// --- Sales and payouts (no wallet: figures come from payment records) ---
+
+export interface FundsSummary {
+  currency: string;
+  pendingSettlementMinor: string;
+  onHoldMinor: string;
+  eligibleMinor: string;
+  payoutRequestedMinor: string;
+  paidOutMinor: string;
+  refundedMinor: string;
+  items: Array<{ paymentId: string; orderId: string; amountMinor: string; bucket: string; at: string }>;
+}
+
+export interface PayoutAccountInfo {
+  bankName: string;
+  accountName: string;
+  accountNumberMasked: string;
+}
+
+export interface PayoutRequestRow {
+  id: string;
+  sellerId: string;
+  amountMinor: string;
+  currency: string;
+  status: 'REQUESTED' | 'APPROVED' | 'REJECTED';
+  destination: { bankName: string; accountName: string; accountNumber: string };
+  skippedPaymentIds?: string[] | null;
+  reviewNote?: string | null;
+  createdAt: string;
+  paymentIds: string[];
+}
+
+async function call<T>(path: string, init: RequestInit | undefined, fallback: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
+  });
+  if (!res.ok) throw await failure(res, fallback);
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
+}
+
+export const payoutsApi = {
+  summary: (sellerId: string) => call<FundsSummary>(`/payouts/seller/${sellerId}/summary`, undefined, 'Could not load your sales.'),
+  account: (sellerId: string) => call<PayoutAccountInfo | null>(`/payouts/seller/${sellerId}/account`, undefined, 'Could not load your payout account.'),
+  saveAccount: (sellerId: string, body: { bankName: string; accountName: string; accountNumber: string }) =>
+    call<PayoutAccountInfo>(`/payouts/seller/${sellerId}/account`, { method: 'PUT', body: JSON.stringify(body) }, 'Could not save the account.'),
+  mine: (sellerId: string) => call<PayoutRequestRow[]>(`/payouts/seller/${sellerId}/requests`, undefined, 'Could not load payout requests.'),
+  request: (sellerId: string) => call<PayoutRequestRow>(`/payouts/seller/${sellerId}/request`, { method: 'POST' }, 'Could not request a payout.'),
+  list: (status: string) => call<PayoutRequestRow[]>(`/payouts/requests?status=${status}`, undefined, 'Could not load payout requests.'),
+  approve: (id: string) => call<PayoutRequestRow>(`/payouts/requests/${id}/approve`, { method: 'PATCH' }, 'Could not approve.'),
+  reject: (id: string, reason: string) =>
+    call<PayoutRequestRow>(`/payouts/requests/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }, 'Could not reject.'),
+};

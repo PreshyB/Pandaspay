@@ -62,7 +62,7 @@ export default function SellerDashboardPage() {
       <div className="page-head">
         <h1>Orders</h1>
         <p className="muted" style={{ margin: 0 }}>
-          {seller.fullName} · <Link className="link" to="/seller/delivery">Delivery and shipping</Link>
+          {seller.fullName} · <Link className="link" to="/seller/delivery">Delivery and shipping</Link> · <Link className="link" to="/seller/funds">Sales and payouts</Link>
         </p>
       </div>
 

@@ -14,6 +14,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { PaymentProvidersModule } from './payment-providers/payment-providers.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { PayoutsModule } from './payouts/payouts.module';
 import { SettlementModule } from './settlement/settlement.module';
 
 @Module({
@@ -32,6 +33,7 @@ import { SettlementModule } from './settlement/settlement.module';
     PaymentProvidersModule,
     DisputesModule,
     WebhooksModule,
+    PayoutsModule,
     SettlementModule,
   ],
 })

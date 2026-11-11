@@ -14,6 +14,8 @@ import SellerNewProductPage from './pages/SellerNewProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AdminSellersPage from './pages/AdminSellersPage';
+import SellerFundsPage from './pages/SellerFundsPage';
+import AdminPayoutsPage from './pages/AdminPayoutsPage';
 import SignInPage from './pages/SignInPage';
 import AdminDisputesPage from './pages/AdminDisputesPage';
 import AdminDisputePage from './pages/AdminDisputePage';
@@ -80,6 +82,8 @@ export default function App() {
           <Route path="/admin/disputes/:disputeId" element={<AdminDisputePage />} />
           <Route path="/orders/:orderId" element={<OrderStatusPage />} />
           <Route path="/seller" element={<SellerDashboardPage />} />
+          <Route path="/seller/funds" element={<SellerFundsPage />} />
+          <Route path="/admin/payouts" element={<AdminPayoutsPage />} />
           <Route path="/seller/delivery" element={<SellerDeliveryPage />} />
           <Route path="/seller/new-product" element={<SellerNewProductPage />} />
         </Routes>

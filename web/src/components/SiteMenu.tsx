@@ -90,6 +90,9 @@ export function SiteMenu() {
           <Link className="menu__item" to="/seller">
             Seller dashboard
           </Link>
+          <Link className="menu__item" to="/seller/funds">
+            Sales and payouts
+          </Link>
 
           {(isAdmin || !user) && (
             <>
@@ -97,6 +100,9 @@ export function SiteMenu() {
               <p className="menu__group">Admin{user ? '' : ' (test)'}</p>
               <Link className="menu__item" to="/admin/sellers">
                 Seller applications
+              </Link>
+              <Link className="menu__item" to="/admin/payouts">
+                Payout requests
               </Link>
               <Link className="menu__item" to="/admin/disputes">
                 Disputes

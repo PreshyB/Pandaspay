@@ -1617,3 +1617,35 @@ form .notice,
   letter-spacing: 0.4em;
   text-align: center;
 }
+
+.fundtiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.fundtile {
+  padding: 1rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.fundtile__t {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.fundtile__v {
+  margin: 0.25rem 0;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  color: var(--ink);
+}
+
+.fundtile__d {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
