@@ -104,6 +104,9 @@ export function SiteMenu() {
               <Link className="menu__item" to="/admin/payouts">
                 Payout requests
               </Link>
+              <Link className="menu__item" to="/admin/reconciliation">
+                Reconciliation
+              </Link>
               <Link className="menu__item" to="/admin/disputes">
                 Disputes
               </Link>

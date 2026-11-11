@@ -3,6 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entity';
 import { PaymentEvent } from './entities/payment-event.entity';
 import { Settlement } from './entities/settlement.entity';
+import { FinancialTransaction } from './financial-transaction.entity';
+import { LedgerController } from './ledger.controller';
+import { LedgerService } from './ledger.service';
 import { IdempotencyKeyRecord } from './entities/idempotency-key.entity';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
@@ -11,11 +14,11 @@ import { PaymentProvidersModule } from '../payment-providers/payment-providers.m
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Payment, PaymentEvent, Settlement, IdempotencyKeyRecord]),
+    TypeOrmModule.forFeature([Payment, PaymentEvent, Settlement, IdempotencyKeyRecord, FinancialTransaction]),
     PaymentProvidersModule,
   ],
-  providers: [PaymentsService, DispositionLockService],
-  controllers: [PaymentsController],
-  exports: [PaymentsService, DispositionLockService, TypeOrmModule],
+  providers: [PaymentsService, DispositionLockService, LedgerService],
+  controllers: [PaymentsController, LedgerController],
+  exports: [PaymentsService, DispositionLockService, LedgerService, TypeOrmModule],
 })
 export class PaymentsModule {}

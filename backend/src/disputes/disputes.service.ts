@@ -1,9 +1,11 @@
-import { BadRequestException, Injectable, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Dispute, DisputeStatus } from './entities/dispute.entity';
 import { PaymentsService } from '../payments/payments.service';
 import { DispositionLockService } from '../payments/disposition-lock.service';
+import { FinancialTransactionType } from '../payments/financial-transaction.entity';
+import { LedgerService } from '../payments/ledger.service';
 import { PaymentProtectionStatus } from '../common/enums/payment-protection-status.enum';
 import { Payment } from '../payments/entities/payment.entity';
 import { Order } from '../orders/entities/order.entity';
@@ -28,6 +30,7 @@ export class DisputesService {
     @InjectRepository(Dispute) private readonly disputes: Repository<Dispute>,
     private readonly paymentsService: PaymentsService,
     private readonly dispositionLock: DispositionLockService,
+    private readonly ledger: LedgerService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProviderService,
     private readonly dataSource: DataSource,
   ) {}
@@ -65,34 +68,42 @@ export class DisputesService {
     return this.disputes.save(dispute);
   }
 
-  /** DISPUTED -> RELEASABLE. Re-enters the normal release path (spec §3.2). No terminal disposition yet, so no lock needed. */
+  /**
+   * Marks the dispute decided inside the same transaction as the money change. The conditional write means
+   * two admins deciding at once cannot both win: the second finds it already closed and the whole step rolls back.
+   */
+  private async closeDispute(manager: EntityManager, disputeId: string, fields: Partial<Dispute>) {
+    const r = await manager
+      .createQueryBuilder()
+      .update(Dispute)
+      .set({ ...fields, resolvedAt: new Date() })
+      .where('id = :id', { id: disputeId })
+      .andWhere('status IN (:...open)', { open: [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW] })
+      .execute();
+    if (!r.affected) throw new ConflictException(`Dispute ${disputeId} was already decided.`);
+  }
+
+  /** DISPUTED -> RELEASABLE. Re-enters the normal release path (spec §3.2). Guarded so it cannot race a refund decision. */
   async resolveInSellersFavor(disputeId: string, resolvedById: string, notes?: string): Promise<Dispute> {
     const dispute = await this.disputes.findOneByOrFail({ id: disputeId });
     this.assertOpen(dispute);
 
-    const payment = await this.dataSource.getRepository(Payment).findOneByOrFail({ id: dispute.paymentId });
-    if (payment.protectionStatus !== PaymentProtectionStatus.DISPUTED) {
-      throw new BadRequestException(`Payment ${payment.id} is not DISPUTED`);
-    }
-    payment.protectionStatus = PaymentProtectionStatus.RELEASABLE;
-    payment.releasableAt = new Date();
-    await this.dataSource.getRepository(Payment).save(payment);
-    await this.dataSource.getRepository(PaymentEvent).save(
-      this.dataSource.getRepository(PaymentEvent).create({
-        paymentId: payment.id,
-        fromStatus: PaymentProtectionStatus.DISPUTED,
-        toStatus: PaymentProtectionStatus.RELEASABLE,
-        actorType: 'ADMIN',
-        actorRef: resolvedById,
-        reason: notes ?? 'Dispute resolved in seller’s favor',
-      }),
-    );
-
-    dispute.status = DisputeStatus.RESOLVED_SELLER;
-    dispute.resolvedById = resolvedById;
-    dispute.resolutionNotes = notes;
-    dispute.resolvedAt = new Date();
-    return this.disputes.save(dispute);
+    await this.dataSource.transaction(async (manager) => {
+      await this.closeDispute(manager, disputeId, { status: DisputeStatus.RESOLVED_SELLER, resolvedById, resolutionNotes: notes });
+      await this.dispositionLock.acquire(manager, dispute.paymentId, PaymentProtectionStatus.DISPUTED, PaymentProtectionStatus.RELEASABLE);
+      await manager.getRepository(Payment).update({ id: dispute.paymentId }, { releasableAt: new Date() });
+      await manager.getRepository(PaymentEvent).save(
+        manager.getRepository(PaymentEvent).create({
+          paymentId: dispute.paymentId,
+          fromStatus: PaymentProtectionStatus.DISPUTED,
+          toStatus: PaymentProtectionStatus.RELEASABLE,
+          actorType: 'ADMIN',
+          actorRef: resolvedById,
+          reason: notes ?? 'Dispute resolved in seller’s favor',
+        }),
+      );
+    });
+    return this.disputes.findOneByOrFail({ id: disputeId });
   }
 
   /** DISPUTED -> REFUND_APPROVED. Acquires the disposition lock (spec §5), then sends the refund instruction. */
@@ -102,6 +113,7 @@ export class DisputesService {
 
     await this.dataSource.transaction(async (manager) => {
       const payment = await manager.getRepository(Payment).findOneByOrFail({ id: dispute.paymentId });
+      await this.closeDispute(manager, disputeId, { status: DisputeStatus.RESOLVED_BUYER, resolvedById, resolutionNotes: notes });
 
       await this.dispositionLock.acquire(
         manager,
@@ -127,6 +139,10 @@ export class DisputesService {
           providerInstructionRef: instructionResult.providerInstructionRef,
         }),
       );
+      await this.ledger.record(
+        { paymentId: dispute.paymentId, type: FinancialTransactionType.REFUND_INSTRUCTED, amountMinor: payment.amountMinor, currency: payment.currency, reference: idempotencyKey },
+        manager,
+      );
 
       await manager.getRepository(PaymentEvent).save(
         manager.getRepository(PaymentEvent).create({
@@ -139,12 +155,7 @@ export class DisputesService {
         }),
       );
     });
-
-    dispute.status = DisputeStatus.RESOLVED_BUYER;
-    dispute.resolvedById = resolvedById;
-    dispute.resolutionNotes = notes;
-    dispute.resolvedAt = new Date();
-    return this.disputes.save(dispute);
+    return this.disputes.findOneByOrFail({ id: disputeId });
   }
 
   /**
@@ -156,6 +167,12 @@ export class DisputesService {
     const dispute = await this.disputes.findOneByOrFail({ id: disputeId });
     this.assertOpen(dispute);
 
+    // Both parts must be whole, positive amounts. (A one-sided outcome is a seller or buyer decision, not a split.)
+    const isAmount = (v: unknown) => typeof v === 'string' && /^[1-9]\d*$/.test(v);
+    if (!isAmount(input.releaseMinor) || !isAmount(input.refundMinor)) {
+      throw new BadRequestException('A split needs a positive amount for both the seller and the buyer.');
+    }
+
     const dispositionGroupId = randomUUID();
 
     await this.dataSource.transaction(async (manager) => {
@@ -165,6 +182,14 @@ export class DisputesService {
       if (sum.toString() !== BigInt(payment.amountMinor).toString()) {
         throw new BadRequestException('Split release + refund amounts must sum to the protected amount');
       }
+
+      await this.closeDispute(manager, disputeId, {
+        status: DisputeStatus.RESOLVED_SPLIT,
+        splitReleaseMinor: input.releaseMinor,
+        splitRefundMinor: input.refundMinor,
+        resolvedById,
+        resolutionNotes: notes,
+      });
 
       await this.dispositionLock.acquire(
         manager,
@@ -209,6 +234,8 @@ export class DisputesService {
           dispositionGroupId,
         }),
       ]);
+      await this.ledger.record({ paymentId: dispute.paymentId, type: FinancialTransactionType.PAYOUT_INSTRUCTED, amountMinor: input.releaseMinor, currency: payment.currency, reference: payoutKey }, manager);
+      await this.ledger.record({ paymentId: dispute.paymentId, type: FinancialTransactionType.REFUND_INSTRUCTED, amountMinor: input.refundMinor, currency: payment.currency, reference: refundKey }, manager);
 
       await manager.getRepository(PaymentEvent).save(
         manager.getRepository(PaymentEvent).create({
@@ -221,14 +248,7 @@ export class DisputesService {
         }),
       );
     });
-
-    dispute.status = DisputeStatus.RESOLVED_SPLIT;
-    dispute.splitReleaseMinor = input.releaseMinor;
-    dispute.splitRefundMinor = input.refundMinor;
-    dispute.resolvedById = resolvedById;
-    dispute.resolutionNotes = notes;
-    dispute.resolvedAt = new Date();
-    return this.disputes.save(dispute);
+    return this.disputes.findOneByOrFail({ id: disputeId });
   }
 
   private assertOpen(dispute: Dispute) {

@@ -163,3 +163,12 @@ export const payoutsApi = {
   reject: (id: string, reason: string) =>
     call<PayoutRequestRow>(`/payouts/requests/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }, 'Could not reject.'),
 };
+
+export interface Reconciliation {
+  checkedPayments: number;
+  clean: boolean;
+  issues: Array<{ paymentId: string; problem: string }>;
+  totals: { receivedMinor: string; payoutInstructedMinor: string; refundInstructedMinor: string; stillHeldMinor: string };
+}
+
+export const getReconciliation = () => call<Reconciliation>('/ledger/reconciliation', undefined, 'Could not run the check.');
