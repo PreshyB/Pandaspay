@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { AuthUser, assertIs, assertSeller, CurrentUser, Public } from '../auth/authz';
+import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductInput, ProductsService } from './products.service';
 
 @Controller('products')
@@ -7,7 +8,7 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  create(@Body() input: CreateProductInput, @CurrentUser() user?: AuthUser) {
+  create(@Body() input: CreateProductDto, @CurrentUser() user?: AuthUser) {
     assertSeller(user);
     assertIs(user, input.sellerId);
     return this.productsService.create(input);

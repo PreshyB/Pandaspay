@@ -158,6 +158,59 @@ describe('Money safety, permissions and reconciliation (e2e)', () => {
     expect(after.body.eligibleMinor).toBe('0');
   });
 
+  describe('input validation', () => {
+    it('refuses malformed requests before they reach any logic', async () => {
+      await api().post('/users').send({ email: 'not-an-email', fullName: 'X' }).expect(400);
+      await api().post('/users').send({ email: `ok-${stamp()}@example.com`, fullName: '' }).expect(400);
+      await api().post('/auth/request-code').send({ email: 'nope' }).expect(400);
+      await api().post('/auth/verify').send({ email: 'a@example.com', code: '12' }).expect(400);
+      await api().post('/disputes').send({ paymentId: 'not-a-uuid', reason: 'x' }).expect(400);
+    });
+
+    it('rejects bad quantities, prices and over-long text', async () => {
+      const buyer = await newUser('buyer');
+      const seller = await newUser('seller');
+      await ds.getRepository(User).update(seller.id, { roles: [UserRole.BUYER, UserRole.SELLER] });
+      await api().post('/products').send({ sellerId: seller.id, title: 'Free item', priceMinor: '0' }).expect(400);
+      await api().post('/products').send({ sellerId: seller.id, title: 'Neg', priceMinor: '-5' }).expect(400);
+      await api().post('/products').send({ sellerId: seller.id, title: 'x'.repeat(201), priceMinor: '100' }).expect(400);
+      const product = await api().post('/products').send({ sellerId: seller.id, title: 'Fine', priceMinor: '100' }).expect(201);
+      for (const quantity of [0, -1, 1.5, '2', 100000]) {
+        await api()
+          .post('/orders')
+          .send({ buyerId: buyer.id, sellerId: seller.id, items: [{ productId: product.body.id, quantity }] })
+          .expect(400);
+      }
+    });
+
+    it('ignores fields it does not know about, including roles on sign-up', async () => {
+      const r = await api()
+        .post('/users')
+        .send({ email: `x-${stamp()}@example.com`, fullName: 'Extra', roles: ['ADMIN'], sellerStatus: 'APPROVED', isAdmin: true })
+        .expect(201);
+      expect(r.body.roles).toEqual(['BUYER']);
+      expect(r.body.sellerStatus).toBe('NONE');
+    });
+
+    it('never returns a password hash', async () => {
+      const u = await newUser('safe');
+      const res = await api().get(`/users/${u.id}`).expect(200);
+      expect(Object.keys(res.body)).not.toContain('passwordHash');
+    });
+  });
+
+  it('records sensitive changes in the audit log', async () => {
+    const { seller } = await protectedPayment();
+    await api().put(`/payouts/seller/${seller.id}/account`).send({ bankName: 'Test Bank', accountName: 'S', accountNumber: '0123456789' }).expect(200);
+    await api().put(`/payouts/seller/${seller.id}/account`).send({ bankName: 'Other Bank', accountName: 'S', accountNumber: '9876543210' }).expect(200);
+    const rows: Array<{ action: string; details: { last4: string } }> = await ds.query(
+      `SELECT action, details FROM audit_logs WHERE "targetId" = $1 ORDER BY "createdAt"`,
+      [seller.id],
+    );
+    expect(rows.map((r) => r.action)).toEqual(['PAYOUT_ACCOUNT_SET', 'PAYOUT_ACCOUNT_CHANGED']);
+    expect(JSON.stringify(rows)).not.toContain('0123456789'); // the full number is never written to the log
+  });
+
   describe('when sign-in is enforced', () => {
     beforeAll(() => {
       process.env.AUTH_ENFORCED = 'true';

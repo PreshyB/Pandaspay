@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable, Logger, UnauthorizedException } 
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'crypto';
 import { MoreThan, Repository } from 'typeorm';
+import { AuditService } from '../audit/audit.service';
 import { User, UserRole } from '../users/user.entity';
 import { AuthUser } from './authz';
 import { LoginCode } from './login-code.entity';
@@ -25,6 +26,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(LoginCode) private readonly codes: Repository<LoginCode>,
+    private readonly audit: AuditService,
   ) {
     if (process.env.AUTH_SECRET) {
       this.secret = process.env.AUTH_SECRET;
@@ -107,6 +109,9 @@ export class AuthService {
       await this.users.save(user);
     }
 
+    if (user.roles.includes(UserRole.ADMIN)) {
+      await this.audit.record({ actorId: user.id, action: 'ADMIN_SIGNED_IN', targetType: 'user', targetId: user.id });
+    }
     return { token: this.issueToken(user.id), user };
   }
 

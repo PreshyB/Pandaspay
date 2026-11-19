@@ -33,6 +33,14 @@ export class PayoutsService {
     if (!/^\d{10}$/.test(accountNumber ?? '')) throw new BadRequestException('A Nigerian account number has 10 digits.');
     const existing = await this.accounts.findOneBy({ userId });
     await this.accounts.save(this.accounts.create({ ...existing, userId, bankName, accountName, accountNumber }));
+    // Changing where money goes is the classic account-takeover move, so it is always on the record.
+    await this.audit.record({
+      actorId: userId,
+      action: existing ? 'PAYOUT_ACCOUNT_CHANGED' : 'PAYOUT_ACCOUNT_SET',
+      targetType: 'user',
+      targetId: userId,
+      details: { bankName, last4: accountNumber.slice(-4) },
+    });
     return this.getAccount(userId);
   }
 
@@ -109,11 +117,11 @@ export class PayoutsService {
   }
 
   requestsFor(sellerId: string) {
-    return this.requests.find({ where: { sellerId }, order: { createdAt: 'DESC' } });
+    return this.requests.find({ where: { sellerId }, order: { createdAt: 'DESC' }, take: 100 });
   }
 
   listByStatus(status: PayoutRequestStatus) {
-    return this.requests.find({ where: { status }, order: { createdAt: 'ASC' } });
+    return this.requests.find({ where: { status }, order: { createdAt: 'ASC' }, take: 200 });
   }
 
   /** Bundles everything currently eligible into one request for an admin to approve. */
@@ -129,7 +137,7 @@ export class PayoutsService {
     if (eligible.length === 0) throw new BadRequestException('Nothing is eligible for payout yet.');
 
     const amount = eligible.reduce((n, p) => n + BigInt(p.amountMinor), BigInt(0));
-    return this.requests.save(
+    const created = await this.requests.save(
       this.requests.create({
         sellerId,
         paymentIds: eligible.map((p) => p.id),
@@ -138,6 +146,14 @@ export class PayoutsService {
         destination: { bankName: account.bankName, accountName: account.accountName, accountNumber: account.accountNumber },
       }),
     );
+    await this.audit.record({
+      actorId: sellerId,
+      action: 'PAYOUT_REQUESTED',
+      targetType: 'payout_request',
+      targetId: created.id,
+      details: { amountMinor: created.amountMinor },
+    });
+    return created;
   }
 
   private async openRequest(id: string) {

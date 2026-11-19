@@ -3,7 +3,8 @@ import { AuditService } from '../audit/audit.service';
 import { AuthUser, CurrentUser, Roles } from '../auth/authz';
 import { UserRole } from '../users/user.entity';
 import { DisputeStatus } from './entities/dispute.entity';
-import { DisputesService, ResolveSplitInput } from './disputes.service';
+import { OpenDisputeDto, ResolveDisputeDto, ResolveSplitDto } from './dto/dispute.dto';
+import { DisputesService } from './disputes.service';
 
 @Controller('disputes')
 export class DisputesController {
@@ -26,18 +27,18 @@ export class DisputesController {
 
   @Post()
   async open(
-    @Body() body: { paymentId: string; openedById: string; reason: string; details?: string },
+    @Body() body: OpenDisputeDto,
     @CurrentUser() user?: AuthUser,
   ) {
-    const openedById = user?.id ?? body.openedById;
+    const openedById = user?.id ?? body.openedById ?? 'unknown';
     if (user) await this.disputesService.assertBuyerOfPayment(body.paymentId, user.id);
     return this.disputesService.open(body.paymentId, openedById, body.reason, body.details);
   }
 
   @Roles(UserRole.ADMIN)
   @Patch(':id/resolve-seller')
-  async resolveSeller(@Param('id') id: string, @Body() body: { resolvedById: string; notes?: string }, @CurrentUser() user?: AuthUser) {
-    const by = user?.id ?? body.resolvedById;
+  async resolveSeller(@Param('id') id: string, @Body() body: ResolveDisputeDto, @CurrentUser() user?: AuthUser) {
+    const by = user?.id ?? body.resolvedById ?? 'unknown';
     const result = await this.disputesService.resolveInSellersFavor(id, by, body.notes);
     await this.audit.record({ actorId: by, action: 'DISPUTE_RESOLVED_SELLER', targetType: 'dispute', targetId: id, details: { notes: body.notes } });
     return result;
@@ -45,8 +46,8 @@ export class DisputesController {
 
   @Roles(UserRole.ADMIN)
   @Patch(':id/resolve-buyer')
-  async resolveBuyer(@Param('id') id: string, @Body() body: { resolvedById: string; notes?: string }, @CurrentUser() user?: AuthUser) {
-    const by = user?.id ?? body.resolvedById;
+  async resolveBuyer(@Param('id') id: string, @Body() body: ResolveDisputeDto, @CurrentUser() user?: AuthUser) {
+    const by = user?.id ?? body.resolvedById ?? 'unknown';
     const result = await this.disputesService.resolveInBuyersFavor(id, by, body.notes);
     await this.audit.record({ actorId: by, action: 'DISPUTE_RESOLVED_BUYER', targetType: 'dispute', targetId: id, details: { notes: body.notes } });
     return result;
@@ -56,10 +57,10 @@ export class DisputesController {
   @Patch(':id/resolve-split')
   async resolveSplit(
     @Param('id') id: string,
-    @Body() body: { resolvedById: string; notes?: string } & ResolveSplitInput,
+    @Body() body: ResolveSplitDto,
     @CurrentUser() user?: AuthUser,
   ) {
-    const by = user?.id ?? body.resolvedById;
+    const by = user?.id ?? body.resolvedById ?? 'unknown';
     const result = await this.disputesService.resolveAsSplit(id, by, body, body.notes);
     await this.audit.record({
       actorId: by,

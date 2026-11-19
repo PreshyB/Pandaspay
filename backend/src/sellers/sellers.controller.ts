@@ -3,16 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser, CurrentUser, Roles } from '../auth/authz';
+import { ApplyToSellDto } from './dto/apply.dto';
 import { SellerStatus, User, UserRole } from '../users/user.entity';
-
-interface ApplyBody {
-  userId?: string; // only honoured while AUTH_ENFORCED is off and no token is sent
-  businessName: string;
-  socialLink?: string;
-  note?: string;
-  storeState: string;
-  storeCity?: string;
-}
 
 @Controller('sellers')
 export class SellersController {
@@ -23,7 +15,7 @@ export class SellersController {
 
   /** The signed-in user asks to sell. Nothing seller-related unlocks until an admin approves. */
   @Post('apply')
-  async apply(@Body() body: ApplyBody, @CurrentUser() actor?: AuthUser) {
+  async apply(@Body() body: ApplyToSellDto, @CurrentUser() actor?: AuthUser) {
     const id = actor?.id ?? body.userId;
     const user = id ? await this.users.findOneBy({ id }) : null;
     if (!user) throw new NotFoundException('Account not found.');
@@ -46,13 +38,15 @@ export class SellersController {
     user.sellerReviewedAt = null;
     user.storeState = body.storeState.trim();
     user.storeCity = body.storeCity?.trim() || undefined;
-    return this.users.save(user);
+    const saved = await this.users.save(user);
+    await this.audit.record({ actorId: user.id, action: 'SELLER_APPLIED', targetType: 'user', targetId: user.id });
+    return saved;
   }
 
   @Roles(UserRole.ADMIN)
   @Get('applications')
   list(@Query('status') status: SellerStatus = SellerStatus.PENDING) {
-    return this.users.find({ where: { sellerStatus: status }, order: { updatedAt: 'ASC' } });
+    return this.users.find({ where: { sellerStatus: status }, order: { updatedAt: 'ASC' }, take: 200 });
   }
 
   @Roles(UserRole.ADMIN)

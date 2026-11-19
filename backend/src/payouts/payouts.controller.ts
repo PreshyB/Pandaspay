@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { AuthUser, assertIs, assertSeller, assertSelf, CurrentUser, Roles } from '../auth/authz';
 import { UserRole } from '../users/user.entity';
+import { PayoutAccountDto } from './dto/payout-account.dto';
 import { PayoutRequestStatus } from './payout.entities';
 import { PayoutsService } from './payouts.service';
 
@@ -23,7 +24,7 @@ export class PayoutsController {
   @Put('seller/:sellerId/account')
   saveAccount(
     @Param('sellerId') sellerId: string,
-    @Body() body: { bankName: string; accountName: string; accountNumber: string },
+    @Body() body: PayoutAccountDto,
     @CurrentUser() user?: AuthUser,
   ) {
     assertSeller(user);

@@ -44,7 +44,7 @@ export class User {
   @Column({ type: 'simple-array', default: UserRole.BUYER })
   roles: UserRole[];
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, select: false })
   passwordHash?: string;
 
   /** Seller activation: NONE -> PENDING (applied) -> APPROVED or REJECTED (admin). SELLER role is added only on approval. */

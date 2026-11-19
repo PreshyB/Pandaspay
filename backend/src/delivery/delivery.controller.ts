@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { AuthUser, assertIs, assertSeller, CurrentUser, Public } from '../auth/authz';
+import { DeliveryOptionDto, StoreLocationDto } from './dto/delivery.dto';
 import { DeliveryService, UpsertDeliveryOptionInput } from './delivery.service';
 
 @Controller('delivery')
@@ -14,14 +15,14 @@ export class DeliveryController {
   }
 
   @Patch('seller/:sellerId/location')
-  setLocation(@Param('sellerId') sellerId: string, @Body() body: { storeState: string; storeCity?: string }, @CurrentUser() user?: AuthUser) {
+  setLocation(@Param('sellerId') sellerId: string, @Body() body: StoreLocationDto, @CurrentUser() user?: AuthUser) {
     assertIs(user, sellerId);
     return this.delivery.setStoreLocation(sellerId, body.storeState, body.storeCity);
   }
 
   /** Create or update the option for a zone x speed. */
   @Post('options')
-  upsert(@Body() input: UpsertDeliveryOptionInput, @CurrentUser() user?: AuthUser) {
+  upsert(@Body() input: DeliveryOptionDto, @CurrentUser() user?: AuthUser) {
     assertSeller(user);
     assertIs(user, input.sellerId);
     return this.delivery.upsert(input);
