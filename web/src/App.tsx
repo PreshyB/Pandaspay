@@ -9,7 +9,10 @@ import HomePage from './pages/HomePage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import ProductPage from './pages/ProductPage';
 import OrderStatusPage from './pages/OrderStatusPage';
-import SellerDashboardPage from './pages/SellerDashboardPage';
+import SellerLayout from './pages/SellerLayout';
+import SellerOverviewPage from './pages/SellerOverviewPage';
+import SellerOrdersPage from './pages/SellerOrdersPage';
+import SellerProductsPage from './pages/SellerProductsPage';
 import SellerNewProductPage from './pages/SellerNewProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -82,12 +85,16 @@ export default function App() {
           <Route path="/admin/disputes" element={<AdminDisputesPage />} />
           <Route path="/admin/disputes/:disputeId" element={<AdminDisputePage />} />
           <Route path="/orders/:orderId" element={<OrderStatusPage />} />
-          <Route path="/seller" element={<SellerDashboardPage />} />
-          <Route path="/seller/funds" element={<SellerFundsPage />} />
           <Route path="/admin/reconciliation" element={<AdminReconciliationPage />} />
           <Route path="/admin/payouts" element={<AdminPayoutsPage />} />
-          <Route path="/seller/delivery" element={<SellerDeliveryPage />} />
-          <Route path="/seller/new-product" element={<SellerNewProductPage />} />
+          <Route path="/seller" element={<SellerLayout />}>
+            <Route index element={<SellerOverviewPage />} />
+            <Route path="orders" element={<SellerOrdersPage />} />
+            <Route path="products" element={<SellerProductsPage />} />
+            <Route path="funds" element={<SellerFundsPage />} />
+            <Route path="delivery" element={<SellerDeliveryPage />} />
+            <Route path="new-product" element={<SellerNewProductPage />} />
+          </Route>
         </Routes>
       </main>
       <footer className="footer">

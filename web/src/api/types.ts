@@ -24,6 +24,11 @@ export type PaymentProtectionStatus =
   | 'REFUNDED'
   | 'PARTIALLY_RESOLVED';
 
+export interface ProductImage {
+  id: string;
+  position: number;
+}
+
 export interface Product {
   id: string;
   sellerId: string;
@@ -37,6 +42,7 @@ export interface Product {
   stockQuantity: number;
   slug: string;
   isActive: boolean;
+  images?: ProductImage[];
 }
 
 export type DeliveryZone = 'SAME_CITY' | 'WITHIN_STATE' | 'OUTSIDE_STATE';

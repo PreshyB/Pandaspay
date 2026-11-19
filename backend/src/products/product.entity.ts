@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
+import { ProductImage } from './product-image.entity';
 import { ProductSku } from './product-sku.entity';
 
 export interface ProductOption {
@@ -59,6 +60,10 @@ export class Product {
 
   @OneToMany(() => ProductSku, (sku) => sku.product, { eager: true, cascade: ['insert'] })
   skus: ProductSku[];
+
+  /** Photo records only (no bytes). The lowest position is the cover. */
+  @OneToMany(() => ProductImage, (i) => i.product, { eager: true })
+  images: ProductImage[];
 
   /** The unique shareable product link slug (per blueprint §1.1). */
   @Column({ unique: true })

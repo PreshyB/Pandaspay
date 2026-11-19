@@ -178,6 +178,67 @@ describe('Money safety, permissions and reconciliation (e2e)', () => {
     await api().patch(`/disputes/${opened.body.id}/resolve-buyer`).send({ resolvedById: 'admin', notes: 'Refund the buyer' }).expect(200);
   });
 
+  describe('product photos', () => {
+    // A valid 1x1 PNG.
+    const PNG = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    async function sellerWithProduct() {
+      const seller = await newUser('photog');
+      await ds.getRepository(User).update(seller.id, { roles: [UserRole.BUYER, UserRole.SELLER] });
+      const product = await api().post('/products').send({ sellerId: seller.id, title: 'Photographed', priceMinor: '100000' }).expect(201);
+      return { seller, product: product.body as { id: string; slug: string } };
+    }
+
+    it('stores a photo, serves its exact bytes, lists it on the product, and removes it', async () => {
+      const { product } = await sellerWithProduct();
+      const up = await api().post(`/products/${product.id}/images`).attach('file', PNG, { filename: 'a.png', contentType: 'image/png' }).expect(201);
+
+      const served = await api().get(`/products/images/${up.body.id}`).buffer(true).parse((res, cb) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => cb(null, Buffer.concat(chunks)));
+      });
+      expect(served.status).toBe(200);
+      expect(served.headers['content-type']).toContain('image/png');
+      expect(Buffer.compare(served.body as Buffer, PNG)).toBe(0);
+
+      const listed = await api().get(`/products/${product.slug}`).expect(200);
+      expect(listed.body.images.map((i: { id: string }) => i.id)).toEqual([up.body.id]);
+      expect(JSON.stringify(listed.body)).not.toContain('"data"'); // the bytes never travel with the product
+
+      await api().delete(`/products/${product.id}/images/${up.body.id}`).expect(200);
+      await api().get(`/products/images/${up.body.id}`).expect(404);
+    });
+
+    it('refuses files that are not real photos, whatever they are called', async () => {
+      const { product } = await sellerWithProduct();
+      await api().post(`/products/${product.id}/images`).attach('file', Buffer.from('<svg onload=alert(1)></svg>'), { filename: 'a.png', contentType: 'image/png' }).expect(400);
+      await api().post(`/products/${product.id}/images`).attach('file', Buffer.from('not an image at all'), { filename: 'b.jpg', contentType: 'image/jpeg' }).expect(400);
+      await api().post(`/products/${product.id}/images`).expect(400); // no file
+    });
+
+    it('limits size and number of photos, and the cover can be changed', async () => {
+      const { product } = await sellerWithProduct();
+      const big = Buffer.concat([PNG, Buffer.alloc(5 * 1024 * 1024 + 10)]);
+      await api().post(`/products/${product.id}/images`).attach('file', big, { filename: 'big.png', contentType: 'image/png' }).expect(413);
+
+      const ids: string[] = [];
+      for (let i = 0; i < 8; i++) {
+        const r = await api().post(`/products/${product.id}/images`).attach('file', PNG, { filename: `${i}.png`, contentType: 'image/png' }).expect(201);
+        ids.push(r.body.id);
+      }
+      await api().post(`/products/${product.id}/images`).attach('file', PNG, { filename: '9.png', contentType: 'image/png' }).expect(400);
+
+      await api().patch(`/products/${product.id}/images/${ids[5]}/cover`).expect(200);
+      const after = await api().get(`/products/${product.slug}`).expect(200);
+      const sorted = [...after.body.images].sort((a: { position: number }, b: { position: number }) => a.position - b.position);
+      expect(sorted[0].id).toBe(ids[5]);
+    });
+  });
+
   describe('input validation', () => {
     it('refuses malformed requests before they reach any logic', async () => {
       await api().post('/users').send({ email: 'not-an-email', fullName: 'X' }).expect(400);
@@ -276,6 +337,24 @@ describe('Money safety, permissions and reconciliation (e2e)', () => {
       await api().get(`/users/${b.id}`).set('Authorization', `Bearer ${tokenA}`).expect(200).expect((res: { body: Record<string, unknown> }) => {
         expect(res.body.email).toBeUndefined(); // other people's accounts show a name only
       });
+    });
+
+    it('only the owner can add or remove photos on a product', async () => {
+      const owner = await newUser('owner');
+      const other = await newUser('other');
+      await ds.getRepository(User).update(owner.id, { roles: [UserRole.BUYER, UserRole.SELLER] });
+      await ds.getRepository(User).update(other.id, { roles: [UserRole.BUYER, UserRole.SELLER] });
+      const ownerToken = await login(owner.email);
+      const otherToken = await login(other.email);
+      const product = await api()
+        .post('/products')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ sellerId: owner.id, title: 'Mine', priceMinor: '100' })
+        .expect(201);
+      const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+      await api().post(`/products/${product.body.id}/images`).attach('file', PNG, { filename: 'a.png', contentType: 'image/png' }).expect(401);
+      await api().post(`/products/${product.body.id}/images`).set('Authorization', `Bearer ${otherToken}`).attach('file', PNG, { filename: 'a.png', contentType: 'image/png' }).expect(403);
+      await api().post(`/products/${product.body.id}/images`).set('Authorization', `Bearer ${ownerToken}`).attach('file', PNG, { filename: 'a.png', contentType: 'image/png' }).expect(201);
     });
 
     it('a seller does not see who the buyer is until they accept the order', async () => {

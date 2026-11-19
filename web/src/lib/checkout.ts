@@ -12,6 +12,7 @@ export interface CheckoutLine {
   currency: string;
   quantity: number;
   variant: Record<string, string>;
+  imageId?: string;
 }
 
 export interface CheckoutDraft {

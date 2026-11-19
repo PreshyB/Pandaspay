@@ -1,6 +1,9 @@
 import { authHeaders } from '../lib/session';
 import type { CreateOrderResponse, Dispute, DeliveryOption, DeliverySpeed, DeliveryZone, Order, Payment, Product, SellerDelivery } from './types';
 
+/** Address of a product photo, for use in <img src>. */
+export const imageUrl = (imageId: string) => `${import.meta.env.VITE_API_BASE_URL ?? ''}/api/products/images/${imageId}`;
+
 // Empty in dev (vite.config.ts proxies /api to the backend). Set
 // VITE_API_BASE_URL at build time to point a production build at a
 // deployed backend origin, e.g. https://api.paytight.example.
@@ -82,6 +85,28 @@ export const api = {
     options?: { name: string; values: string[] }[];
     skus?: { attributes: Record<string, string>; stockQuantity: number }[];
   }) => request<Product>('/products', { method: 'POST', body: JSON.stringify(input) }),
+
+  listProductsBySeller: (sellerId: string) => request<Product[]>(`/products?sellerId=${encodeURIComponent(sellerId)}`),
+
+  /** Multipart upload: the browser sets the Content-Type (with its boundary), so it is not forced to JSON here. */
+  uploadProductImage: async (productId: string, file: Blob, name = 'photo.jpg') => {
+    const form = new FormData();
+    form.append('file', file, name);
+    const res = await fetch(`${BASE}/products/${productId}/images`, { method: 'POST', headers: { ...authHeaders() }, body: form });
+    if (!res.ok) {
+      let message = 'Could not upload that photo.';
+      try {
+        const parsed = (await res.json()) as { message?: string | string[] };
+        if (parsed.message) message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message;
+      } catch {
+        /* keep the default */
+      }
+      throw new Error(res.status === 413 ? 'That photo is too large.' : message);
+    }
+    return res.json() as Promise<{ id: string }>;
+  },
+  deleteProductImage: (productId: string, imageId: string) => request<unknown>(`/products/${productId}/images/${imageId}`, { method: 'DELETE' }),
+  makeCoverImage: (productId: string, imageId: string) => request<unknown>(`/products/${productId}/images/${imageId}/cover`, { method: 'PATCH' }),
 
   createOrder: (input: {
     buyerId: string;

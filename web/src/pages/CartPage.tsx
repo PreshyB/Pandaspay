@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, imageUrl } from '../api/client';
 import { getUser } from '../api/users';
 import { lineKey, removeLines, updateLine, useCart, type CartLine } from '../lib/cart';
 import { saveDraft } from '../lib/checkout';
@@ -81,7 +81,9 @@ export default function CartPage() {
     const choices = Object.entries(l.variant).map(([k, v]) => `${k}: ${v}`).join(' · ');
     return (
       <div key={key} className="cartline">
-        <div>
+        <div className="cartline__main">
+          {l.imageId ? <img className="cartline__img" src={imageUrl(l.imageId)} alt="" /> : <span className="cartline__img cartline__img--none" aria-hidden="true" />}
+          <div>
           <Link to={`/p/${l.slug}`} className="cartline__t">
             {l.title}
           </Link>
@@ -90,6 +92,7 @@ export default function CartPage() {
             {choices || 'No options'}
           </p>
           {notes[key] && <p className="notice notice--amber">{notes[key]}</p>}
+          </div>
         </div>
         <div className="stepper-q">
           <button className="btn btn--outline btn--sm" aria-label="One fewer" disabled={l.quantity <= 1} onClick={() => updateLine(key, { quantity: l.quantity - 1 })}>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, imageUrl } from '../api/client';
 import type { Product } from '../api/types';
 import { addToCart } from '../lib/cart';
 import { saveDraft, type CheckoutLine } from '../lib/checkout';
@@ -22,6 +22,7 @@ export default function ProductPage() {
   const [variant, setVariant] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+  const [photoId, setPhotoId] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -43,6 +44,8 @@ export default function ProductPage() {
   }
   if (!product) return <p className="muted">Loading product…</p>;
 
+  const photos = [...(product.images ?? [])].sort((a, b) => a.position - b.position);
+  const shown = photos.find((p) => p.id === photoId) ?? photos[0];
   const options = product.options ?? [];
   const skus = product.skus ?? [];
   const hasSkus = skus.length > 0;
@@ -80,6 +83,7 @@ export default function ProductPage() {
       currency: product!.currency,
       quantity: qty,
       variant,
+      imageId: photos[0]?.id,
     };
   }
 
@@ -96,6 +100,20 @@ export default function ProductPage() {
   return (
     <div className="product">
       <div>
+        {shown && (
+          <div className="gallery">
+            <img className="gallery__main" src={imageUrl(shown.id)} alt={product.title} />
+            {photos.length > 1 && (
+              <div className="gallery__thumbs" role="group" aria-label="Product photos">
+                {photos.map((p, i) => (
+                  <button key={p.id} type="button" className={`gallery__thumb${p.id === shown.id ? ' gallery__thumb--on' : ''}`} onClick={() => setPhotoId(p.id)} aria-label={`Photo ${i + 1} of ${photos.length}`}>
+                    <img src={imageUrl(p.id)} alt="" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {product.brand && <p className="eyebrow">{product.brand}</p>}
         <h1>{product.title}</h1>
         <p className="product__price">{formatMoney(product.priceMinor, product.currency)}</p>

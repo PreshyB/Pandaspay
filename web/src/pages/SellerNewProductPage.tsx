@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { PhotoPicker, type PickedPhoto } from '../components/PhotoPicker';
 import { formatMoney } from '../lib/money';
 import { useDevIdentity } from '../lib/useDevIdentity';
 
@@ -15,7 +16,8 @@ export default function SellerNewProductPage() {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('1');
   const [comboStock, setComboStock] = useState<Record<string, string>>({});
-  const [created, setCreated] = useState<{ title: string; link: string } | null>(null);
+  const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+  const [created, setCreated] = useState<{ title: string; link: string; photosFailed: number } | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -51,7 +53,18 @@ export default function SellerNewProductPage() {
         ? combos.map((c) => ({ attributes: c, stockQuantity: Math.max(0, Math.floor(Number(comboStock[comboKey(c)] ?? '1') || 0)) }))
         : undefined;
       const product = await api.createProduct({ sellerId, title, description, priceMinor, stockQuantity: Number(stock), brand: brand.trim() || undefined, options, skus });
-      setCreated({ title: product.title ?? title, link: `${window.location.origin}/p/${product.slug}` });
+      // Photos go up after the product exists, in the order chosen, so the first is the cover.
+      let photosFailed = 0;
+      for (const [i, p] of photos.entries()) {
+        try {
+          await api.uploadProductImage(product.id, p.blob, `photo-${i + 1}.jpg`);
+        } catch {
+          photosFailed += 1;
+        }
+      }
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+      setPhotos([]);
+      setCreated({ title: product.title ?? title, link: `${window.location.origin}/p/${product.slug}`, photosFailed });
       setCopied(false);
       setTitle('');
       setDescription('');
@@ -84,6 +97,11 @@ export default function SellerNewProductPage() {
       <div className="share">
         <h1>Your link is ready</h1>
         <p>Share it in a chat or post. Buyers who open it can pay with protection.</p>
+        {created.photosFailed > 0 && (
+          <p className="notice notice--amber">
+            {created.photosFailed} photo{created.photosFailed === 1 ? '' : 's'} could not be uploaded. Add {created.photosFailed === 1 ? 'it' : 'them'} again from <Link className="link" to="/seller/products">Products</Link>.
+          </p>
+        )}
         <a className="share__link" href={created.link}>
           {created.link}
         </a>
@@ -187,6 +205,11 @@ export default function SellerNewProductPage() {
         </fieldset>
 
         <fieldset className="group">
+          <legend>Photos</legend>
+          <PhotoPicker photos={photos} onChange={setPhotos} />
+        </fieldset>
+
+        <fieldset className="group">
           <legend>Choices for the buyer</legend>
           <p className="field__hint" style={{ marginTop: 0 }}>
             Colour, size, model... Separate the values with commas. Buyers must pick one of each before checkout.
@@ -255,6 +278,7 @@ export default function SellerNewProductPage() {
 
       <aside className="preview" aria-label="Preview">
         <h2>What buyers will see</h2>
+        {photos[0] && <img className="preview__img" src={photos[0].preview} alt="Cover photo" />}
         {brand && <p className="eyebrow" style={{ marginBottom: '0.25rem' }}>{brand}</p>}
         <p className={`preview__title${title ? '' : ' preview__title--empty'}`}>{title || 'Your product title'}</p>
         <p className={`preview__price${hasPrice ? '' : ' preview__price--empty'}`}>
