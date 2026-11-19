@@ -1,4 +1,4 @@
-# Pandas Pay — Backend
+# PayTight — Backend
 
 NestJS + TypeORM + PostgreSQL API implementing the commerce, payment-protection
 and settlement-orchestration layer described in the master blueprint, built
@@ -93,8 +93,14 @@ curl -X POST localhost:3000/webhooks/palmpay \
 
 ## What's deliberately not built yet
 
-- Auth/sessions (every endpoint currently trusts the caller — fine for this
-  slice, not for anything further).
+- Real email delivery of sign-in codes. Sign-in is an emailed one-time code
+  with signed session tokens and ownership/role checks (see `.env.example`:
+  `AUTH_SECRET`, `AUTH_ENFORCED`, `AUTH_DEV_OTP`, `ADMIN_EMAILS`). Until an email
+  provider is wired up, codes are returned in the API response in dev and only
+  logged in production. Enforcement is always on in production; off by default
+  elsewhere so the mobile app (no sign-in yet) keeps working.
+- Seller identity/payout verification. Seller activation is an application that
+  an admin approves or rejects (audited); no ID documents are collected yet.
 - Courier/tracking webhook ingestion (`IN_TRANSIT`, `DELIVERY_FAILED` can be
   driven manually via the order endpoints for now).
 - Seller payout-destination storage (the settlement scheduler currently
@@ -108,3 +114,12 @@ tables — on purpose. `payments`, `payment_events`, `disputes`,
 `settlements`, `provider_webhook_events` and `idempotency_keys` are Pandas
 Pay's own operational/audit record, never a representation of funds Pandas
 Pay itself holds (Model B: the licensed partner holds the money).
+
+## Security hardening
+
+- Every request body for sign-in, sign-up, seller applications, payout accounts, disputes, delivery, products and orders is validated by a DTO class; unknown fields are dropped (so a sign-up can never set its own roles).
+- Per-IP rate limits (in memory, so per server instance): sign-in and sign-up are limited much harder than the rest. Provider webhooks are exempt and will be authenticated by signature.
+- Security headers on every response, `Cache-Control: no-store`, CORS closed in production unless `CORS_ORIGINS` lists the web origins, `x-powered-by` removed.
+- Audit log covers seller applications and decisions, dispute decisions, payout requests and decisions, payout account set/changed (last 4 digits only), and admin sign-ins.
+- Still to do: encrypt payout account numbers at rest, a Redis-backed rate limiter for more than one server, webhook signature verification (needs the chosen payment provider), second-approver for payouts.
+

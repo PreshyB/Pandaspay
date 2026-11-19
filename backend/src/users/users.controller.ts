@@ -1,17 +1,24 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { CreateUserInput, UsersService } from './users.service';
+import { AuthUser, CurrentUser, isAdmin, Public } from '../auth/authz';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UsersService } from './users.service';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Public()
   @Post()
-  create(@Body() input: CreateUserInput) {
+  create(@Body() input: CreateUserDto) {
     return this.usersService.create(input);
   }
 
+  /** Your own record in full; anyone else's as just a name (used to show who a seller is). */
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.usersService.findById(id);
+  async getById(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+    const found = await this.usersService.findById(id);
+    if (!found) return null;
+    if (!user || user.id === id || isAdmin(user)) return found;
+    return { id: found.id, fullName: found.fullName };
   }
 }

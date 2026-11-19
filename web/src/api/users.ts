@@ -1,24 +1,174 @@
+import { authHeaders } from '../lib/session';
+
+export interface SellerApplication {
+  businessName: string;
+  socialLink?: string;
+  note?: string;
+  submittedAt: string;
+}
+
 export interface User {
   id: string;
   email: string;
   fullName: string;
   roles: string[];
+  sellerStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  sellerApplication?: SellerApplication | null;
+  sellerReviewNote?: string | null;
+  storeState?: string | null;
+  storeCity?: string | null;
 }
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api`;
 
-export async function createUser(input: { email: string; fullName: string; roles?: string[] }): Promise<User> {
+async function failure(res: Response, fallback: string): Promise<Error> {
+  try {
+    const parsed = (await res.json()) as { message?: string | string[] };
+    if (parsed.message) return new Error(Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message);
+  } catch {
+    /* not JSON */
+  }
+  return new Error(fallback);
+}
+
+export async function createUser(input: { email: string; fullName: string; phone?: string }): Promise<User> {
   const res = await fetch(`${BASE}/users`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (res.status === 409) throw new Error('An account with this email already exists. Sign in instead.');
+  if (!res.ok) throw new Error('We could not create your account. Please try again.');
   return res.json();
 }
 
 export async function getUser(id: string): Promise<User> {
-  const res = await fetch(`${BASE}/users/${id}`);
+  const res = await fetch(`${BASE}/users/${id}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export async function requestCode(email: string): Promise<{ sent: true; devCode?: string }> {
+  const res = await fetch(`${BASE}/auth/request-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw await failure(res, 'We could not send a code. Try again.');
+  return res.json();
+}
+
+export async function verifyCode(email: string, code: string): Promise<{ token: string; user: User }> {
+  const res = await fetch(`${BASE}/auth/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  });
+  if (!res.ok) throw await failure(res, 'That code is not right or has expired.');
+  return res.json();
+}
+
+export async function getMe(): Promise<User | null> {
+  const res = await fetch(`${BASE}/auth/me`, { headers: authHeaders() });
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error(await res.text());
+  const text = await res.text();
+  return text ? (JSON.parse(text) as User | null) : null;
+}
+
+export async function applyToSell(input: {
+  businessName: string;
+  socialLink?: string;
+  note?: string;
+  storeState: string;
+  storeCity?: string;
+  userId?: string;
+}): Promise<User> {
+  const res = await fetch(`${BASE}/sellers/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await failure(res, 'We could not send your application.');
+  return res.json();
+}
+
+export async function listSellerApplications(status: string): Promise<User[]> {
+  const res = await fetch(`${BASE}/sellers/applications?status=${status}`, { headers: authHeaders() });
+  if (!res.ok) throw await failure(res, 'Could not load applications.');
+  return res.json();
+}
+
+export async function reviewSeller(id: string, decision: 'approve' | 'reject', reason?: string): Promise<User> {
+  const res = await fetch(`${BASE}/sellers/${id}/${decision}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw await failure(res, 'That decision could not be saved.');
+  return res.json();
+}
+
+// --- Sales and payouts (no wallet: figures come from payment records) ---
+
+export interface FundsSummary {
+  currency: string;
+  pendingSettlementMinor: string;
+  onHoldMinor: string;
+  eligibleMinor: string;
+  payoutRequestedMinor: string;
+  paidOutMinor: string;
+  refundedMinor: string;
+  items: Array<{ paymentId: string; orderId: string; amountMinor: string; bucket: string; at: string }>;
+}
+
+export interface PayoutAccountInfo {
+  bankName: string;
+  accountName: string;
+  accountNumberMasked: string;
+}
+
+export interface PayoutRequestRow {
+  id: string;
+  sellerId: string;
+  amountMinor: string;
+  currency: string;
+  status: 'REQUESTED' | 'APPROVED' | 'REJECTED';
+  destination: { bankName: string; accountName: string; accountNumber: string };
+  skippedPaymentIds?: string[] | null;
+  reviewNote?: string | null;
+  createdAt: string;
+  paymentIds: string[];
+}
+
+async function call<T>(path: string, init: RequestInit | undefined, fallback: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
+  });
+  if (!res.ok) throw await failure(res, fallback);
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
+}
+
+export const payoutsApi = {
+  summary: (sellerId: string) => call<FundsSummary>(`/payouts/seller/${sellerId}/summary`, undefined, 'Could not load your sales.'),
+  account: (sellerId: string) => call<PayoutAccountInfo | null>(`/payouts/seller/${sellerId}/account`, undefined, 'Could not load your payout account.'),
+  saveAccount: (sellerId: string, body: { bankName: string; accountName: string; accountNumber: string }) =>
+    call<PayoutAccountInfo>(`/payouts/seller/${sellerId}/account`, { method: 'PUT', body: JSON.stringify(body) }, 'Could not save the account.'),
+  mine: (sellerId: string) => call<PayoutRequestRow[]>(`/payouts/seller/${sellerId}/requests`, undefined, 'Could not load payout requests.'),
+  request: (sellerId: string) => call<PayoutRequestRow>(`/payouts/seller/${sellerId}/request`, { method: 'POST' }, 'Could not request a payout.'),
+  list: (status: string) => call<PayoutRequestRow[]>(`/payouts/requests?status=${status}`, undefined, 'Could not load payout requests.'),
+  approve: (id: string) => call<PayoutRequestRow>(`/payouts/requests/${id}/approve`, { method: 'PATCH' }, 'Could not approve.'),
+  reject: (id: string, reason: string) =>
+    call<PayoutRequestRow>(`/payouts/requests/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }, 'Could not reject.'),
+};
+
+export interface Reconciliation {
+  checkedPayments: number;
+  clean: boolean;
+  issues: Array<{ paymentId: string; problem: string }>;
+  totals: { receivedMinor: string; payoutInstructedMinor: string; refundInstructedMinor: string; stillHeldMinor: string };
+}
+
+export const getReconciliation = () => call<Reconciliation>('/ledger/reconciliation', undefined, 'Could not run the check.');
