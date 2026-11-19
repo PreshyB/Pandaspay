@@ -10,7 +10,7 @@ const HANGERS: Array<[number, number]> = [
 ];
 
 const STAGES = [
-  ['You pay', 'Your payment is verified and goes under BuyBridge protection.'],
+  ['You pay', 'Your payment is verified and goes under PayTight protection.'],
   ['Payment Protected', 'The seller sees the funds are protected, then ships your order.'],
   ['You confirm', 'Tap "I\'ve received this order". A protection window starts.'],
   ['Funds released', 'No dispute in the window? The seller\'s Protected Funds are released.'],
@@ -28,7 +28,7 @@ export function HeroScene() {
         className="scene__svg"
         viewBox="0 0 560 320"
         role="img"
-        aria-label="Animation: the buyer's payment moves to a BuyBridge vault under the bridge, the parcel travels to the buyer, and only then is the seller paid."
+        aria-label="Animation: the buyer's payment moves to a PayTight vault under the bridge, the parcel travels to the buyer, and only then is the seller paid."
       >
         <rect className="scene__vault" x="222" y="224" width="116" height="62" rx="14" />
         <line className="scene__hanger" x1="248" y1="200" x2="248" y2="224" />
@@ -66,7 +66,7 @@ export function HeroScene() {
         <path className="scene__arch" d="M130 196 Q280 -10 430 196" pathLength={1} />
 
         <text className="scene__note" x="280" y="306" textAnchor="middle">
-          Held by BuyBridge
+          Held by PayTight
         </text>
 
         <g className="scene__tick" transform="translate(98 150)">

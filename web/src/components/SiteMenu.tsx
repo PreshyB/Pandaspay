@@ -50,7 +50,7 @@ export function SiteMenu() {
         <div className="menu__panel" id={panelId}>
           <p className="menu__group">Learn</p>
           <Link className="menu__item" to="/#how">
-            How BuyBridge works
+            How PayTight works
           </Link>
           <Link className="menu__item" to="/#safety">
             Safety and disputes

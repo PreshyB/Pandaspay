@@ -6,7 +6,7 @@ import { useAccount } from '../lib/account';
 
 const STEPS: Array<[string, string]> = [
   ['Tell us about your store', 'Your store name, where you sell, and where you ship from.'],
-  ['BuyBridge reviews it', 'An admin checks your details before selling goes live.'],
+  ['PayTight reviews it', 'An admin checks your details before selling goes live.'],
   ['Identity and payout checks', 'Required before real payouts. Not built yet in this test version.'],
   ['List products and share links', 'Once approved, seller tools switch on for this same account.'],
 ];
@@ -26,8 +26,8 @@ export default function StartSellingPage() {
   if (!user) {
     return (
       <div className="card empty">
-        <h1>Start selling on BuyBridge</h1>
-        <p>Selling is a part of your one BuyBridge account. Create your account or sign in first, then come back here.</p>
+        <h1>Start selling on PayTight</h1>
+        <p>Selling is a part of your one PayTight account. Create your account or sign in first, then come back here.</p>
         <div className="row">
           <Link className="btn" to="/get-started">
             Create your account

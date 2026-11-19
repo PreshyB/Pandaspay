@@ -86,7 +86,7 @@ export default function SellerFundsPage() {
     ? [
         ['Pending settlement', sum.pendingSettlementMinor, 'Paid by buyers, not yet eligible. Released after delivery is confirmed or the protection window passes.'],
         ['Eligible for payout', sum.eligibleMinor, 'Ready for you to request.'],
-        ['Payout requested', sum.payoutRequestedMinor, 'Waiting for BuyBridge to approve.'],
+        ['Payout requested', sum.payoutRequestedMinor, 'Waiting for PayTight to approve.'],
         ['Paid out', sum.paidOutMinor, 'Sent to your bank account.'],
         ['On hold', sum.onHoldMinor, 'A buyer opened a dispute on these.'],
       ]
@@ -97,7 +97,7 @@ export default function SellerFundsPage() {
       <div className="page-head">
         <h1>Sales and payouts</h1>
         <p className="muted" style={{ margin: 0 }}>
-          This is a view of your sales, not a wallet. Payments are held by BuyBridge's licensed payment partner until they're released.
+          This is a view of your sales, not a wallet. Payments are held by PayTight's licensed payment partner until they're released.
         </p>
       </div>
       {error && <p className="error">{error}</p>}
@@ -114,7 +114,7 @@ export default function SellerFundsPage() {
               </div>
             ))}
           </div>
-          <p className="gs__fine">Amounts are order totals. BuyBridge's fees haven't been decided yet, so none are taken off in this test version.</p>
+          <p className="gs__fine">Amounts are order totals. PayTight's fees haven't been decided yet, so none are taken off in this test version.</p>
 
           <section className="panel" style={{ marginTop: '1.5rem' }}>
             <h2>Get paid</h2>

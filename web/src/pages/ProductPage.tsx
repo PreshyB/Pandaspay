@@ -191,7 +191,7 @@ export default function ProductPage() {
           </li>
           <li>
             <Tick />
-            Payment Protected: your payment is held under BuyBridge's protection terms until delivery is confirmed.
+            Payment Protected: your payment is held under PayTight's protection terms until delivery is confirmed.
           </li>
           <li>
             <Tick />

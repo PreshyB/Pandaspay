@@ -44,7 +44,7 @@ export default function SellerDashboardPage() {
     return (
       <div className="card empty">
         <h1>Start selling first</h1>
-        <p>Seller tools are part of your one BuyBridge account. Switch them on to see your orders.</p>
+        <p>Seller tools are part of your one PayTight account. Switch them on to see your orders.</p>
         <Link className="btn" to="/start-selling">
           Start selling
         </Link>

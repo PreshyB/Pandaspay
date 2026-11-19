@@ -7,8 +7,8 @@ export interface CartLine extends CheckoutLine {
   maxQty: number;
 }
 
-const KEY = 'buybridge.cart';
-const EVENT = 'buybridge:cart';
+const KEY = 'paytight.cart';
+const EVENT = 'paytight:cart';
 
 export const lineKey = (l: Pick<CartLine, 'productId' | 'variant'>) =>
   `${l.productId}|${Object.keys(l.variant).sort().map((k) => `${k}=${l.variant[k]}`).join('&')}`;

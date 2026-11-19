@@ -115,7 +115,7 @@ export default function SellerNewProductPage() {
     return (
       <div className="card empty">
         <h1>Start selling first</h1>
-        <p>Seller tools are part of your one BuyBridge account. Switch them on to list a product.</p>
+        <p>Seller tools are part of your one PayTight account. Switch them on to list a product.</p>
         <Link className="btn" to="/start-selling">
           Start selling
         </Link>

@@ -24,7 +24,7 @@ export class LedgerService {
   }
 
   /**
-   * Checks BuyBridge's three records agree: the payment status, the settlement instructions, and the ledger.
+   * Checks PayTight's three records agree: the payment status, the settlement instructions, and the ledger.
    * It cannot yet compare with the partner's own statement (no partner is connected), so a clean report means
    * our books are consistent, not that the bank balance matches.
    */

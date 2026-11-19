@@ -7,7 +7,7 @@ export enum FinancialTransactionType {
 }
 
 /**
- * BuyBridge's own append-only record of financial events (Model B: an operational and audit
+ * PayTight's own append-only record of financial events (Model B: an operational and audit
  * record, not a balance). Rows are never updated or deleted. The unique (type, reference)
  * pair makes writing the same event twice a no-op, so retries and redelivered webhooks are safe.
  */

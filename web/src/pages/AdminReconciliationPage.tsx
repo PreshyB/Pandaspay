@@ -20,7 +20,7 @@ export default function AdminReconciliationPage() {
         </p>
       </div>
       <div className="notice notice--amber">
-        This compares BuyBridge's own records only. It can't yet compare with the payment partner's statement, because no partner is
+        This compares PayTight's own records only. It can't yet compare with the payment partner's statement, because no partner is
         connected. Payments made before the ledger existed will show as mismatches.
       </div>
       {error && <p className="error">{error}</p>}

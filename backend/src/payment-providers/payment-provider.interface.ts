@@ -1,6 +1,6 @@
 /**
- * PaymentProviderService — the single seam between BuyBridge and whichever
- * licensed partner actually holds the money under Model B (see BuyBridge:
+ * PaymentProviderService — the single seam between PayTight and whichever
+ * licensed partner actually holds the money under Model B (see PayTight:
  * Fund Custody & Settlement Model). Every provider (PalmPay today, possibly
  * Moniepoint MFB / a specialist MFB later) implements this interface.
  *
@@ -12,7 +12,7 @@
  */
 
 export interface InitiatePaymentRequest {
-  /** BuyBridge's own idempotency key for this payment attempt. */
+  /** PayTight's own idempotency key for this payment attempt. */
   idempotencyKey: string;
   amountMinor: string;
   currency: string;
@@ -44,7 +44,7 @@ export interface RefundInstruction {
 
 export interface SettlementInstructionResult {
   providerInstructionRef: string;
-  /** Model B: BuyBridge records the instruction was sent; execution is confirmed later via webhook. */
+  /** Model B: PayTight records the instruction was sent; execution is confirmed later via webhook. */
   status: 'INSTRUCTION_SENT';
 }
 

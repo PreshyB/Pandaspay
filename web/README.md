@@ -1,4 +1,4 @@
-# BuyBridge — Web
+# PayTight — Web
 
 React + TypeScript (Vite) buyer/seller web app, built against the backend
 API in `../backend`.

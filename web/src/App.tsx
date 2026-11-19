@@ -47,9 +47,9 @@ export default function App() {
     <div className="shell">
       <ScrollToHash />
       <header className="topbar">
-        <NavLink to="/" className="brand" aria-label="BuyBridge home">
+        <NavLink to="/" className="brand" aria-label="PayTight home">
           <BrandMark size={30} />
-          <span className="brand__name">BuyBridge</span>
+          <span className="brand__name">PayTight</span>
         </NavLink>
         <div className="topbar__actions">
           <Link className="cartlink" to="/cart" aria-label={`Cart, ${count} item${count === 1 ? '' : 's'}`}>
@@ -91,7 +91,7 @@ export default function App() {
         </Routes>
       </main>
       <footer className="footer">
-        <span>Payment protection follows BuyBridge's terms and doesn't cover every case.</span>
+        <span>Payment protection follows PayTight's terms and doesn't cover every case.</span>
         <span>Test mode: payments are simulated and no real money moves.</span>
       </footer>
     </div>

@@ -20,7 +20,7 @@ export interface CheckoutDraft {
   lines: CheckoutLine[];
 }
 
-const KEY = 'buybridge.checkout';
+const KEY = 'paytight.checkout';
 let mem: CheckoutDraft | null = null;
 
 export function saveDraft(draft: CheckoutDraft) {

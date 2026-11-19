@@ -1,6 +1,6 @@
 /**
- * The BuyBridge mark: the letter B built from a pylon stem and two open
- * suspension-cable arcs. Draws in `currentColor` so it follows its parent.
+ * The PayTight mark: the letter P built from a pylon stem and one open
+ * suspension-cable arc. Draws in `currentColor` so it follows its parent.
  */
 export function BrandMark({ size = 30 }: { size?: number }) {
   return (
@@ -13,8 +13,7 @@ export function BrandMark({ size = 30 }: { size?: number }) {
       focusable="false"
     >
       <rect x="16" y="10" width="16" height="100" rx="8" fill="currentColor" />
-      <path d="M32 16 Q86 16 86 38 Q86 60 32 60" stroke="currentColor" strokeWidth="14" strokeLinecap="round" />
-      <path d="M32 64 Q92 64 92 90 Q92 116 32 116" stroke="currentColor" strokeWidth="14" strokeLinecap="round" />
+      <path d="M32 16 Q94 16 94 46 Q94 76 32 76" stroke="currentColor" strokeWidth="14" strokeLinecap="round" />
     </svg>
   );
 }

@@ -1,6 +1,6 @@
 /** The sign-in token for this browser. Sent as a bearer token on every API call. */
-const KEY = 'buybridge.token';
-export const SESSION_EVENT = 'buybridge:account';
+const KEY = 'paytight.token';
+export const SESSION_EVENT = 'paytight:account';
 
 export function getToken(): string | null {
   try {

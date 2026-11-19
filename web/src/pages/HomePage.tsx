@@ -51,7 +51,7 @@ function Safety() {
               <span>Seller, buyer or split</span>
             </li>
           </ol>
-          <p>Open a dispute while the payment is protected. The money stays put until it's decided. Protection follows BuyBridge's terms and doesn't cover every case.</p>
+          <p>Open a dispute while the payment is protected. The money stays put until it's decided. Protection follows PayTight's terms and doesn't cover every case.</p>
         </article>
       </div>
     </section>
@@ -69,7 +69,7 @@ export default function HomePage() {
           <p className="eyebrow">Payment protection for buying and selling in chat</p>
           <h1>Buy and sell on social media, with the payment protected.</h1>
           <p className="hero__lede">
-            Found something on WhatsApp, Instagram or TikTok? BuyBridge verifies the payment and holds it under its
+            Found something on WhatsApp, Instagram or TikTok? PayTight verifies the payment and holds it under its
             protection terms until delivery is confirmed. Sellers get Protected Funds, buyers get a clear record.
           </p>
 

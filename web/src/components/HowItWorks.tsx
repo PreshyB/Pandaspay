@@ -62,8 +62,8 @@ const ICONS: Record<string, ReactNode> = {
 
 const CONTENT: Record<Tab, { icon: string; title: string; text: string }[]> = {
   buyers: [
-    { icon: 'link', title: 'Get the seller\'s link', text: 'The seller sends a BuyBridge link or product code in your chat. Open it, pick your colour, size or model, and the quantity.' },
-    { icon: 'lock', title: 'Sign up, then pay', text: 'New here? A quick sign-up, then your delivery details. Your payment is verified and held under BuyBridge\'s protection terms.' },
+    { icon: 'link', title: 'Get the seller\'s link', text: 'The seller sends a PayTight link or product code in your chat. Open it, pick your colour, size or model, and the quantity.' },
+    { icon: 'lock', title: 'Sign up, then pay', text: 'New here? A quick sign-up, then your delivery details. Your payment is verified and held under PayTight\'s protection terms.' },
     { icon: 'box', title: 'Receive your order', text: 'The seller ships and adds a waybill reference. Follow progress on your order page, then confirm when it arrives.' },
     { icon: 'shield', title: 'A window to speak up', text: 'After delivery, a protection window runs (72 hours in this test version). Report a problem and the payment is held while it is reviewed.' },
   ],

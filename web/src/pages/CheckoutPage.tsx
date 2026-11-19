@@ -265,7 +265,7 @@ export default function CheckoutPage() {
             )}
 
             <div className="notice notice--protected">
-              <strong>Payment Protected.</strong> After your payment is verified, BuyBridge holds it under its protection terms until
+              <strong>Payment Protected.</strong> After your payment is verified, PayTight holds it under its protection terms until
               delivery is confirmed. Protection has eligibility rules and doesn't guarantee every transaction.
             </div>
 
@@ -314,7 +314,7 @@ export default function CheckoutPage() {
             <dd className={chosen ? '' : 'muted'}>{chosen ? feeLabel(chosen.feeMinor, currency) : 'Choose at delivery'}</dd>
           </div>
           <div>
-            <dt>BuyBridge protection</dt>
+            <dt>PayTight protection</dt>
             <dd className="muted">Fee not set yet</dd>
           </div>
           {chosen && (
@@ -326,7 +326,7 @@ export default function CheckoutPage() {
             </div>
           )}
         </dl>
-        <p className="gs__fine">The final amount is calculated by BuyBridge when you place the order.</p>
+        <p className="gs__fine">The final amount is calculated by PayTight when you place the order.</p>
         <Link className="link" to={draft0.source === 'cart' ? '/cart' : `/p/${draft0.lines[0].slug}`}>
           {draft0.source === 'cart' ? 'Back to cart' : 'Change options'}
         </Link>

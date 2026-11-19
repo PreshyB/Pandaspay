@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, web-redesign-buybridge]
+    branches: [main, web-redesign-paytight]
   pull_request:
 
 jobs:

@@ -1,4 +1,4 @@
-# BuyBridge
+# PayTight
 
 A social-commerce payment-protection and transaction-management platform for
 sellers on WhatsApp, Instagram, Facebook, TikTok and Telegram — initial
@@ -30,8 +30,8 @@ once their docs land, should touch one file.
 The product/architecture docs this code is built from live in this repo's
 history as reference (converted to markdown for engineering use):
 
-- BuyBridge — Master Product, Technology, Architecture, Security &
+- PayTight — Master Product, Technology, Architecture, Security &
   Development Blueprint
-- BuyBridge — Order Status & Payment Protection State-Machine
+- PayTight — Order Status & Payment Protection State-Machine
   Specification v1.0
-- BuyBridge — Fund Custody & Settlement Model
+- PayTight — Fund Custody & Settlement Model

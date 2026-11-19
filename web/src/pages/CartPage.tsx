@@ -182,7 +182,7 @@ export default function CartPage() {
         >
           Go to checkout
         </button>
-        <p className="gs__fine">The final amount is calculated by BuyBridge when you place the order.</p>
+        <p className="gs__fine">The final amount is calculated by PayTight when you place the order.</p>
       </aside>
     </div>
   );
