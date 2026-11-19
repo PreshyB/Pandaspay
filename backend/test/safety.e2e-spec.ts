@@ -201,8 +201,8 @@ describe('Money safety, permissions and reconciliation (e2e)', () => {
 
   it('records sensitive changes in the audit log', async () => {
     const { seller } = await protectedPayment();
-    await api().put(`/payouts/seller/${seller.id}/account`).send({ bankName: 'Test Bank', accountName: 'S', accountNumber: '0123456789' }).expect(200);
-    await api().put(`/payouts/seller/${seller.id}/account`).send({ bankName: 'Other Bank', accountName: 'S', accountNumber: '9876543210' }).expect(200);
+    await api().put(`/payouts/seller/${seller.id}/account`).send({ bankName: 'Test Bank', accountName: 'Seller', accountNumber: '0123456789' }).expect(200);
+    await api().put(`/payouts/seller/${seller.id}/account`).send({ bankName: 'Other Bank', accountName: 'Seller', accountNumber: '9876543210' }).expect(200);
     const rows: Array<{ action: string; details: { last4: string } }> = await ds.query(
       `SELECT action, details FROM audit_logs WHERE "targetId" = $1 ORDER BY "createdAt"`,
       [seller.id],
