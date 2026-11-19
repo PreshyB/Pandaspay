@@ -42,7 +42,6 @@ export class ResolveSplitDto extends ResolveDisputeDto {
   @Matches(/^[1-9]\d{0,17}$/, { message: 'Enter a positive whole amount for the buyer.' })
   refundMinor: string;
 
-  @IsOptional()
   @IsObject()
-  sellerPayoutDestination?: Record<string, unknown>;
+  sellerPayoutDestination: Record<string, unknown>;
 }
