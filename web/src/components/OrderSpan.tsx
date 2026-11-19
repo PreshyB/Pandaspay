@@ -78,7 +78,13 @@ export function statusNotice(
     return { tone: 'alert', text: "A dispute is open. The payment is on hold until it's resolved." };
   }
   if (paymentStatus === 'PAYMENT_DECLINED') {
-    return { tone: 'alert', text: 'The payment was declined.' };
+    return { tone: 'alert', text: 'The payment was declined. Nothing was charged. Your order details are saved, so you can try again.' };
+  }
+  if (paymentStatus === 'AWAITING_PAYMENT' && orderStatus === 'CREATED') {
+    return { tone: 'amber', text: "We're still waiting for payment confirmation. This page updates when it arrives, or you can check now." };
+  }
+  if (paymentStatus === 'PROTECTED' && (orderStatus === 'CREATED' || orderStatus === 'PREPARING')) {
+    return { tone: 'neutral', text: 'Payment protection is active. Funds are held until a release condition is met.' };
   }
   if (paymentStatus === 'REFUND_APPROVED') {
     return { tone: 'amber', text: 'A refund has been approved and is being processed.' };

@@ -109,6 +109,9 @@ export interface Dispute {
   splitRefundMinor?: string;
   resolutionNotes?: string;
   resolvedAt?: string;
+  sellerResponseDueAt?: string | null;
+  sellerResponse?: string | null;
+  sellerRespondedAt?: string | null;
   createdAt: string;
   payment: Payment | null;
   order: Order | null;

@@ -20,6 +20,17 @@ export class OpenDisputeDto {
   details?: string;
 }
 
+export class RespondDisputeDto {
+  /** Only used while sign-in is not enforced and no token is sent. */
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+
+  @IsString()
+  @Length(5, 2000)
+  response: string;
+}
+
 export class ResolveDisputeDto {
   /** Only used while sign-in is not enforced and no token is sent. */
   @IsOptional()

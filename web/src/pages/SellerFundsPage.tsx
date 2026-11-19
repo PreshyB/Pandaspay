@@ -20,6 +20,7 @@ export default function SellerFundsPage() {
   const [reqs, setReqs] = useState<PayoutRequestRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [editing, setEditing] = useState(false);
   const [bank, setBank] = useState('');
   const [name, setName] = useState('');
@@ -71,6 +72,7 @@ export default function SellerFundsPage() {
     setError(null);
     try {
       await payoutsApi.request(seller!.id);
+      setConfirming(false);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not request a payout.');
@@ -146,9 +148,27 @@ export default function SellerFundsPage() {
                 <p className="gs__fine">Test version: the account name isn't checked with the bank yet.</p>
               </form>
             )}
-            <button className="btn btn--lg" style={{ marginTop: '1rem' }} disabled={busy || !acct || !eligible} onClick={requestPayout}>
-              {eligible ? `Request payout of ${money(sum.eligibleMinor)}` : 'Nothing to request yet'}
-            </button>
+            <p className="muted" style={{ marginTop: '1rem' }}>
+              Payout limits: <strong>to be confirmed.</strong> Any daily limit will be shown here before you ask, not after.
+            </p>
+            {!confirming ? (
+              <button className="btn btn--lg" disabled={busy || !acct || !eligible} onClick={() => setConfirming(true)}>
+                {eligible ? `Request payout of ${money(sum.eligibleMinor)}` : 'Nothing to request yet'}
+              </button>
+            ) : (
+              <div className="notice notice--amber">
+                <strong>Confirm:</strong> request {money(sum.eligibleMinor)} to {acct?.accountName}, {acct?.bankName} {acct?.accountNumberMasked}. PayTight reviews every
+                payout request before money moves.
+                <div className="row" style={{ marginTop: '0.75rem' }}>
+                  <button className="btn" disabled={busy} onClick={requestPayout}>
+                    {busy ? 'Requesting…' : 'Confirm request'}
+                  </button>
+                  <button className="btn btn--outline" disabled={busy} onClick={() => setConfirming(false)}>
+                    Go back
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           {reqs.length > 0 && (

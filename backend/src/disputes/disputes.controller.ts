@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
-import { AuthUser, CurrentUser, Roles } from '../auth/authz';
+import { AuthUser, CurrentUser, isAdmin, Roles } from '../auth/authz';
 import { UserRole } from '../users/user.entity';
 import { DisputeStatus } from './entities/dispute.entity';
-import { OpenDisputeDto, ResolveDisputeDto, ResolveSplitDto } from './dto/dispute.dto';
+import { OpenDisputeDto, RespondDisputeDto, ResolveDisputeDto, ResolveSplitDto } from './dto/dispute.dto';
 import { DisputesService } from './disputes.service';
 
 @Controller('disputes')
@@ -17,6 +17,17 @@ export class DisputesController {
   @Get()
   list(@Query('status') status?: DisputeStatus) {
     return this.disputesService.listWithContext(status);
+  }
+
+  /** Buyer, seller or admin: the dispute on one payment (declared before :id so it is not read as an id). */
+  @Get('by-payment/:paymentId')
+  byPayment(@Param('paymentId') paymentId: string, @CurrentUser() user?: AuthUser) {
+    return this.disputesService.findForParty(paymentId, user?.id, isAdmin(user));
+  }
+
+  @Post(':id/respond')
+  respond(@Param('id') id: string, @Body() body: RespondDisputeDto, @CurrentUser() user?: AuthUser) {
+    return this.disputesService.respond(id, user?.id ?? body.userId, body.response);
   }
 
   @Roles(UserRole.ADMIN)

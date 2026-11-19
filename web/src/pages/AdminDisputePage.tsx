@@ -105,6 +105,16 @@ export default function AdminDisputePage() {
             <p className="muted">
               Opened {ageOf(d.createdAt)} ago. Evidence uploads aren't built yet, so there's nothing attached.
             </p>
+            <h3 style={{ marginBottom: '0.25rem' }}>Seller's response</h3>
+            {d.sellerRespondedAt ? (
+              <p>{d.sellerResponse}</p>
+            ) : (
+              <p className="muted">
+                No response yet.
+                {d.sellerResponseDueAt && <> Due {new Date(d.sellerResponseDueAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}
+                {new Date(d.sellerResponseDueAt) < new Date() ? ' (overdue)' : ''}.</>}
+              </p>
+            )}
           </section>
 
           <section className="panel" style={{ marginTop: '1rem' }}>

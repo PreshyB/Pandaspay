@@ -158,6 +158,26 @@ describe('Money safety, permissions and reconciliation (e2e)', () => {
     expect(after.body.eligibleMinor).toBe('0');
   });
 
+  it('disputes carry a seller response deadline; only the seller answers, once, and the buyer sees it', async () => {
+    const { buyer, seller, paymentId } = await protectedPayment();
+    const opened = await api().post('/disputes').send({ paymentId, openedById: buyer.id, reason: 'Item not received' }).expect(201);
+    expect(new Date(opened.body.sellerResponseDueAt).getTime()).toBeGreaterThan(Date.now() + 47 * 3_600_000);
+
+    await api().post(`/disputes/${opened.body.id}/respond`).send({ userId: buyer.id, response: 'I am the buyer' }).expect(403);
+    await api().post(`/disputes/${opened.body.id}/respond`).send({ userId: seller.id, response: 'ok' }).expect(400); // too short
+    const answered = await api()
+      .post(`/disputes/${opened.body.id}/respond`)
+      .send({ userId: seller.id, response: 'Shipped on Monday, waybill attached to the order.' })
+      .expect(201);
+    expect(answered.body.status).toBe('UNDER_REVIEW');
+    await api().post(`/disputes/${opened.body.id}/respond`).send({ userId: seller.id, response: 'Second answer attempt' }).expect(400);
+
+    const seen = await api().get(`/disputes/by-payment/${paymentId}`).expect(200);
+    expect(seen.body.sellerResponse).toContain('Shipped on Monday');
+    // An admin can still decide an under-review dispute.
+    await api().patch(`/disputes/${opened.body.id}/resolve-buyer`).send({ resolvedById: 'admin', notes: 'Refund the buyer' }).expect(200);
+  });
+
   describe('input validation', () => {
     it('refuses malformed requests before they reach any logic', async () => {
       await api().post('/users').send({ email: 'not-an-email', fullName: 'X' }).expect(400);
@@ -256,6 +276,45 @@ describe('Money safety, permissions and reconciliation (e2e)', () => {
       await api().get(`/users/${b.id}`).set('Authorization', `Bearer ${tokenA}`).expect(200).expect((res: { body: Record<string, unknown> }) => {
         expect(res.body.email).toBeUndefined(); // other people's accounts show a name only
       });
+    });
+
+    it('a seller does not see who the buyer is until they accept the order', async () => {
+      const buyer = await newUser('shopper');
+      const seller = await newUser('vendor');
+      await ds.getRepository(User).update(seller.id, { roles: [UserRole.BUYER, UserRole.SELLER] });
+      const buyerToken = await login(buyer.email);
+      const sellerToken = await login(seller.email);
+      const product = await api()
+        .post('/products')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({ sellerId: seller.id, title: 'Thing', priceMinor: '100000' })
+        .expect(201);
+      const created = await api()
+        .post('/orders')
+        .set('Authorization', `Bearer ${buyerToken}`)
+        .send({
+          buyerId: buyer.id,
+          sellerId: seller.id,
+          items: [{ productId: product.body.id, quantity: 1 }],
+          deliveryAddress: { recipientName: 'Ada Obi', phone: '08012345678', street: '14 Faulks Road', city: 'Aba', state: 'Abia' },
+        })
+        .expect(201);
+      const orderId = created.body.order.id;
+      await api()
+        .post('/webhooks/palmpay')
+        .send({ eventId: `evt-${orderId}`, eventType: 'payment.confirmed', providerTransactionRef: created.body.payment.providerTransactionRef })
+        .expect(201);
+
+      const before = await api().get(`/orders/${orderId}`).set('Authorization', `Bearer ${sellerToken}`).expect(200);
+      expect(before.body.deliveryAddress).toEqual({ state: 'Abia', city: 'Aba' });
+      const list = await api().get(`/orders?sellerId=${seller.id}`).set('Authorization', `Bearer ${sellerToken}`).expect(200);
+      expect(JSON.stringify(list.body)).not.toContain('08012345678');
+      const asBuyer = await api().get(`/orders/${orderId}`).set('Authorization', `Bearer ${buyerToken}`).expect(200);
+      expect(asBuyer.body.deliveryAddress.phone).toBe('08012345678'); // the buyer still sees their own details
+
+      await api().patch(`/orders/${orderId}/accept`).set('Authorization', `Bearer ${sellerToken}`).expect(200);
+      const after = await api().get(`/orders/${orderId}`).set('Authorization', `Bearer ${sellerToken}`).expect(200);
+      expect(after.body.deliveryAddress.phone).toBe('08012345678');
     });
 
     it('seller applications: apply, admin approves, seller tools unlock', async () => {

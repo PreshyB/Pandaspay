@@ -1,5 +1,6 @@
 import { ForbiddenException, Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { AuthUser, assertIs, assertSelf, CurrentUser, isAdmin } from '../auth/authz';
+import { OrderStatus } from '../common/enums/order-status.enum';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Order } from './entities/order.entity';
@@ -19,6 +20,13 @@ export class OrdersController {
     return order;
   }
 
+  /** Until the seller accepts, they see where the order is going (state and city) but not who the buyer is or the street. */
+  private redactForSeller<T extends Order>(order: T, user?: AuthUser): T {
+    if (!user || user.id !== order.sellerId || order.status !== OrderStatus.CREATED || !order.deliveryAddress) return order;
+    const { state, city } = order.deliveryAddress as Record<string, unknown>;
+    return { ...order, deliveryAddress: { state, city } };
+  }
+
   @Post()
   create(@Body() dto: CreateOrderDto, @CurrentUser() user?: AuthUser) {
     assertIs(user, dto.buyerId);
@@ -33,14 +41,14 @@ export class OrdersController {
     }
     if (sellerId) {
       assertSelf(user, sellerId);
-      return this.ordersService.findForSeller(sellerId);
+      return this.ordersService.findForSeller(sellerId).then((rows) => rows.map((o) => this.redactForSeller(o, user)));
     }
     return [];
   }
 
   @Get(':id')
-  getById(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
-    return this.forParty(id, user, 'either', false);
+  async getById(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+    return this.redactForSeller(await this.forParty(id, user, 'either', false), user);
   }
 
   @Patch(':id/accept')

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Order, Payment } from '../api/types';
+import type { Dispute, Order, Payment } from '../api/types';
 import { DeliveryTracking } from '../components/DeliveryTracking';
 import { OrderSpan, statusNotice } from '../components/OrderSpan';
 import { StatusBadges } from '../components/StatusBadges';
@@ -16,12 +16,25 @@ export default function OrderStatusPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
+  const [disputeDetails, setDisputeDetails] = useState('');
   const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [dispute, setDispute] = useState<Dispute | null>(null);
+  const [sellerReply, setSellerReply] = useState('');
 
   const { user: buyer } = useDevIdentity('buyer');
 
   const refresh = useCallback(() => {
-    api.getOrder(orderId).then(setOrder).catch(() => setError('Could not load this order.'));
+    api
+      .getOrder(orderId)
+      .then((o) => {
+        setOrder(o);
+        if (o.payment.protectionStatus === 'DISPUTED') {
+          api.getDisputeForPayment(o.payment.id).then(setDispute).catch(() => setDispute(null));
+        } else {
+          setDispute(null);
+        }
+      })
+      .catch(() => setError('Could not load this order.'));
   }, [orderId]);
 
   useEffect(() => {
@@ -59,6 +72,8 @@ export default function OrderStatusPage() {
   const canConfirmDelivered = order.status === 'SHIPPED' || order.status === 'IN_TRANSIT';
   const canDispute = payment.protectionStatus === 'PROTECTED' || payment.protectionStatus === 'RELEASABLE';
   const notice = statusNotice(order.status, payment.protectionStatus);
+  const viewerIsSeller = !!buyer && buyer.id === order.sellerId;
+  const waiting = payment.protectionStatus === 'AWAITING_PAYMENT' && order.status === 'CREATED';
 
   return (
     <div className="order">
@@ -79,6 +94,13 @@ export default function OrderStatusPage() {
         <OrderSpan orderStatus={order.status} paymentStatus={payment.protectionStatus} />
 
         {notice && <p className={`notice notice--${notice.tone}`}>{notice.text}</p>}
+        {waiting && (
+          <p>
+            <button className="btn btn--outline" disabled={busy} onClick={() => run(async () => undefined)}>
+              Check status now
+            </button>
+          </p>
+        )}
 
         <div className="order__badges">
           <StatusBadges orderStatus={order.status} paymentStatus={payment.protectionStatus} />
@@ -101,7 +123,7 @@ export default function OrderStatusPage() {
           </div>
         )}
 
-        {(canConfirmDelivered || (order.status === 'CREATED' && buyer) || (canDispute && !showDisputeForm)) && (
+        {!viewerIsSeller && (canConfirmDelivered || (order.status === 'CREATED' && buyer) || (canDispute && !showDisputeForm)) && (
           <div className="order__actions">
             {canConfirmDelivered && (
               <button className="btn" disabled={busy} onClick={() => run(() => api.confirmDelivered(order.id, 'BUYER'))}>
@@ -131,12 +153,24 @@ export default function OrderStatusPage() {
           <div className="dispute">
             <div className="field">
               <label htmlFor="reason">What went wrong?</label>
+              <select id="reason" value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)}>
+                <option value="">Choose a reason</option>
+                <option>Item not received</option>
+                <option>Item not as described</option>
+                <option>Item damaged</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="details">
+                Tell us more <span className="field__hint">(optional)</span>
+              </label>
               <textarea
-                id="reason"
+                id="details"
                 rows={3}
-                value={disputeReason}
-                onChange={(e) => setDisputeReason(e.target.value)}
-                placeholder="e.g. the item doesn't match the listing"
+                value={disputeDetails}
+                onChange={(e) => setDisputeDetails(e.target.value)}
+                placeholder="What happened, and what would put it right?"
               />
             </div>
             <div className="row">
@@ -145,9 +179,10 @@ export default function OrderStatusPage() {
                 disabled={busy || !disputeReason.trim() || !buyer}
                 onClick={() =>
                   run(async () => {
-                    await api.openDispute(payment.id, buyer!.id, disputeReason.trim());
+                    await api.openDispute(payment.id, buyer!.id, disputeReason.trim(), disputeDetails.trim() || undefined);
                     setShowDisputeForm(false);
                     setDisputeReason('');
+                    setDisputeDetails('');
                   })
                 }
               >
@@ -158,6 +193,53 @@ export default function OrderStatusPage() {
               </button>
             </div>
           </div>
+        )}
+
+        {dispute && payment.protectionStatus === 'DISPUTED' && (
+          <section className="dispute-panel" aria-label="Dispute">
+            <h2>Dispute under review</h2>
+            <p>
+              <strong>{dispute.reason}</strong>
+              {dispute.details && <> — {dispute.details}</>}
+            </p>
+            {dispute.sellerRespondedAt ? (
+              <p>
+                <strong>Seller's response:</strong> {dispute.sellerResponse}
+              </p>
+            ) : dispute.sellerResponseDueAt ? (
+              <p className="muted">
+                {viewerIsSeller ? 'Please respond by ' : 'The seller has until '}
+                <strong>{new Date(dispute.sellerResponseDueAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}</strong> to respond.
+                The window length is provisional.
+              </p>
+            ) : null}
+            <p className="muted">The payment stays protected and on hold until PayTight reviews both sides and decides.</p>
+            {viewerIsSeller && !dispute.sellerRespondedAt && (
+              <div className="field">
+                <label htmlFor="reply">Your response</label>
+                <textarea
+                  id="reply"
+                  rows={3}
+                  value={sellerReply}
+                  onChange={(e) => setSellerReply(e.target.value)}
+                  placeholder="What happened from your side? Mention the waybill, delivery date or anything that helps."
+                />
+                <button
+                  className="btn"
+                  style={{ marginTop: '0.5rem' }}
+                  disabled={busy || sellerReply.trim().length < 5}
+                  onClick={() =>
+                    run(async () => {
+                      await api.respondToDispute(dispute.id, sellerReply.trim(), buyer!.id);
+                      setSellerReply('');
+                    })
+                  }
+                >
+                  Send response
+                </button>
+              </div>
+            )}
+          </section>
         )}
 
         {payment.protectionStatus === 'PROTECTED' && (

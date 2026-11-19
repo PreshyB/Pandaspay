@@ -64,7 +64,41 @@ export class DisputesService {
     // case record is PayTight's operational bookkeeping on top of that.
     await this.paymentsService.openDispute(paymentId, 'BUYER', openedById, reason);
 
-    const dispute = this.disputes.create({ paymentId, openedById, reason, details, status: DisputeStatus.OPEN });
+    const hours = Number(process.env.DISPUTE_RESPONSE_HOURS) || 48;
+    const dispute = this.disputes.create({
+      paymentId,
+      openedById,
+      reason,
+      details,
+      status: DisputeStatus.OPEN,
+      sellerResponseDueAt: new Date(Date.now() + hours * 3_600_000),
+    });
+    return this.disputes.save(dispute);
+  }
+
+  /** The dispute on a payment, for the buyer, the seller or an admin. Null when there is none. */
+  async findForParty(paymentId: string, userId?: string, admin = false): Promise<Dispute | null> {
+    const payment = await this.dataSource.getRepository(Payment).findOneByOrFail({ id: paymentId });
+    const order = await this.dataSource.getRepository(Order).findOneByOrFail({ id: payment.orderId });
+    if (userId && !admin && userId !== order.buyerId && userId !== order.sellerId) {
+      throw new ForbiddenException('That dispute does not belong to your account.');
+    }
+    return this.disputes.findOne({ where: { paymentId }, order: { createdAt: 'DESC' } });
+  }
+
+  /** The seller's one written answer to a dispute. Moves it to UNDER_REVIEW so an admin can decide with both sides in hand. */
+  async respond(disputeId: string, userId: string | undefined, response: string): Promise<Dispute> {
+    const dispute = await this.disputes.findOneByOrFail({ id: disputeId });
+    const payment = await this.dataSource.getRepository(Payment).findOneByOrFail({ id: dispute.paymentId });
+    const order = await this.dataSource.getRepository(Order).findOneByOrFail({ id: payment.orderId });
+    if (userId && userId !== order.sellerId) throw new ForbiddenException('Only the seller on this order can respond.');
+    if (dispute.status !== DisputeStatus.OPEN && dispute.status !== DisputeStatus.UNDER_REVIEW) {
+      throw new BadRequestException('This dispute has already been decided.');
+    }
+    if (dispute.sellerRespondedAt) throw new BadRequestException('You have already responded to this dispute.');
+    dispute.sellerResponse = response.trim();
+    dispute.sellerRespondedAt = new Date();
+    dispute.status = DisputeStatus.UNDER_REVIEW;
     return this.disputes.save(dispute);
   }
 

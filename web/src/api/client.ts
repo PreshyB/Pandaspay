@@ -50,6 +50,10 @@ export const api = {
       body: JSON.stringify({ isActive }),
     }),
 
+  getDisputeForPayment: (paymentId: string) => request<Dispute | null>(`/disputes/by-payment/${paymentId}`),
+  respondToDispute: (id: string, response: string, userId: string) =>
+    request<Dispute>(`/disputes/${id}/respond`, { method: 'POST', body: JSON.stringify({ response, userId }) }),
+
   listDisputes: () => request<Dispute[]>('/disputes'),
   getDispute: (id: string) => request<Dispute | null>(`/disputes/${id}`),
   resolveDispute: (

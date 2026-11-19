@@ -87,9 +87,9 @@ export default function SellerDashboardPage() {
       {orders.length === 0 ? (
         <div className="card empty">
           <h2>No orders yet</h2>
-          <p>Orders appear here as soon as a buyer pays from one of your product links.</p>
+          <p>Orders appear here as soon as a buyer pays from one of your product links. The quickest way to your first order is to list a product and share its link in your chats or posts.</p>
           <Link className="btn" to="/seller/new-product">
-            List a product
+            List a product and get a link
           </Link>
         </div>
       ) : (
@@ -110,7 +110,14 @@ export default function SellerDashboardPage() {
 
                 <StatusBadges orderStatus={order.status} paymentStatus={order.payment.protectionStatus} />
 
-                {order.deliveryAddress?.street && (
+                {order.status === 'CREATED' && order.deliveryAddress && (
+                  <p className="orders__ship">
+                    <strong>Ships to:</strong> {[order.deliveryAddress.city, order.deliveryAddress.state].filter(Boolean).join(', ') || 'Not given'}. The buyer's name,
+                    phone and street address are shown once you accept.
+                  </p>
+                )}
+
+                {order.status !== 'CREATED' && order.deliveryAddress?.street && (
                   <p className="orders__ship">
                     <strong>Ship to:</strong> {order.deliveryAddress.recipientName}, {order.deliveryAddress.phone},{' '}
                     {order.deliveryAddress.street}, {order.deliveryAddress.city}, {order.deliveryAddress.state}
@@ -133,6 +140,11 @@ export default function SellerDashboardPage() {
                       Decline
                     </button>
                   )}
+                  {order.payment.protectionStatus === 'DISPUTED' && (
+                    <Link className="btn btn--danger" to={`/orders/${order.id}`}>
+                      Dispute: respond
+                    </Link>
+                  )}
                   {canShip && (
                     <>
                       <input
@@ -149,6 +161,9 @@ export default function SellerDashboardPage() {
                       >
                         Mark shipped
                       </button>
+                      <p className="gs__fine" style={{ flexBasis: '100%', margin: 0 }}>
+                        A waybill number alone isn't proof of delivery. If there's a dispute, the courier's records or other evidence will be needed.
+                      </p>
                     </>
                   )}
                 </div>

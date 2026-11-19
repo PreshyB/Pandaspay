@@ -43,6 +43,16 @@ export class Dispute {
   @Column({ type: 'text', nullable: true })
   details?: string;
 
+  /** When the seller should have answered by. The window length is provisional (DISPUTE_RESPONSE_HOURS, default 48). */
+  @Column({ type: 'timestamptz', nullable: true })
+  sellerResponseDueAt?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  sellerResponse?: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  sellerRespondedAt?: Date;
+
   @Column({ type: 'enum', enum: DisputeStatus, default: DisputeStatus.OPEN })
   status: DisputeStatus;
 
