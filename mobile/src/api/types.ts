@@ -34,6 +34,10 @@ export interface Product {
   stockQuantity: number;
   slug: string;
   isActive: boolean;
+  brand?: string;
+  options?: { name: string; values: string[] }[];
+  skus?: { id: string; attributes: Record<string, string>; stockQuantity: number }[];
+  images?: { id: string; position: number }[];
 }
 
 export interface OrderItem {
@@ -79,4 +83,6 @@ export interface User {
   email: string;
   fullName: string;
   roles: string[];
+  sellerStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  sellerReviewNote?: string | null;
 }

@@ -1,47 +1,41 @@
-# Pandas Pay — Mobile
+# PayTight — Mobile
 
-React Native app (Expo + TypeScript), mirroring `../web`'s buyer/seller
-flows against the same backend API.
+React Native app (Expo + TypeScript) for the PayTight buyer and seller flows, against the same backend as `../web`.
 
-## What's here
+## Run it on your phone (Expo Go)
 
-Same first slice as web, native:
-
-- **Buyer**: enter a product code → product screen → buy now → order
-  status screen with the order and payment-protection badges rendered
-  independently (per the state-machine spec) → confirm delivery, open a
-  dispute, or (dev-only) simulate the PalmPay webhook.
-- **Seller**: list a product and get a shareable code, dashboard to
-  accept/decline and ship orders.
-
-`src/api/client.ts`, `src/api/types.ts`, `src/components/StatusBadges.tsx`
-and `src/lib/useDevIdentity.ts` are deliberate ports of their `web/`
-counterparts — same logic, React Native primitives instead of DOM/CSS.
-Keep the two in sync by hand until there's a shared package worth
-extracting.
-
-## Running it
+You need Node 22 or newer, the backend running (`../backend/README.md`), and your phone on the **same Wi-Fi** as your computer.
 
 ```bash
+cd mobile
 npm install
+npx expo install --fix     # lines every Expo package up with the Expo SDK (do this once, and after any upgrade)
 npx expo start
 ```
 
-Point the app at your backend: edit `app.json` → `expo.extra.apiBaseUrl`,
-or set `EXPO_PUBLIC_API_BASE_URL` at build/start time. **On a physical
-device or most simulators, `localhost` means the device itself** — use
-your machine's LAN IP (e.g. `http://192.168.1.23:3000`) instead. Make
-sure `../backend` is running first (see `../backend/README.md`).
+Scan the QR code with Expo Go (Android) or the Camera app (iPhone).
 
-## Temporary: dev identity instead of real auth
+### If Expo Go shows an error
 
-Same approach as web (see `web/README.md`), backed by AsyncStorage
-instead of localStorage. Replace `useDevIdentity` once real auth exists.
+| What it says | What to do |
+| --- | --- |
+| "Project is incompatible with this version of Expo Go" / SDK version mismatch | Expo Go only opens the SDK it was built for. Move the project to that SDK: `npx expo install expo@^NN.0.0 --fix` (NN is the SDK number in the message), then `npx expo start -c`. |
+| Red screen with "Unable to resolve module" or a stale bundle | `npx expo start -c` (clears the cache). If it persists: delete `node_modules` and run `npm install && npx expo install --fix`. |
+| "Can't reach the PayTight server at http://…:3000" | Start the backend, keep phone and computer on the same Wi-Fi, and allow port 3000 through your computer's firewall. On guest or office Wi-Fi that isolates devices, use `npx expo start --tunnel` and run the backend through a tunnel (set `EXPO_PUBLIC_API_BASE_URL`, below). |
+| Anything else | `npx expo-doctor` lists mismatched packages. |
 
-## What's deliberately not built yet
+### Where the app finds the backend
 
-Push notifications, camera/image upload for dispute evidence, native
-payment-sheet integration (the web/mobile apps both currently drive
-payment confirmation through the dev-only webhook simulator since
-PalmPay's real checkout flow isn't confirmed yet), and app-store
-packaging/signing.
+The app works this out by itself: it uses the address of the computer running `expo start`, port 3000. Override it by creating `mobile/.env`:
+
+```
+EXPO_PUBLIC_API_BASE_URL=http://192.168.1.23:3000
+```
+
+## What's here
+
+- **Sign in** with an email code (create an account first if you are new). While the backend runs without an email provider, the code is shown on screen in the test version.
+- **Buyer**: enter a product code → product screen (photo, choices such as size or colour) → buy now → order status with the order and payment-protection badges kept separate → confirm delivery or open a dispute.
+- **Seller**: apply to sell (an admin approves you on the web at `/admin/sellers`), then list products and accept, decline and ship orders.
+
+Not in the app yet: product photo upload, delivery zones and fees, payouts, the cart and seller dashboard redesign. Those are on the web for now.

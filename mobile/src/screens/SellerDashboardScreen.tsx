@@ -7,19 +7,18 @@ import { api } from '../api/client';
 import type { OrderWithPayment } from '../api/types';
 import { StatusBadges } from '../components/StatusBadges';
 import { formatMoney } from '../lib/money';
-import { useDevIdentity } from '../lib/useDevIdentity';
+import { useAccount, useDevIdentity } from '../lib/useDevIdentity';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SellerDashboard'>;
 
 export default function SellerDashboardScreen({ navigation }: Props) {
   const t = useTokens();
-  const { user: seller, loading: identityLoading, createIdentity } = useDevIdentity('seller');
+  const { user: seller, loading: identityLoading } = useDevIdentity('seller');
+  const { user: account } = useAccount();
   const [orders, setOrders] = useState<OrderWithPayment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [waybillDrafts, setWaybillDrafts] = useState<Record<string, string>>({});
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
 
   const refresh = useCallback(() => {
     if (!seller) return;
@@ -50,30 +49,11 @@ export default function SellerDashboardScreen({ navigation }: Props) {
       <View style={[styles.container, { backgroundColor: t.paper }]}>
         <Text style={[styles.title, { color: t.ink }]}>Seller dashboard</Text>
         <Text style={[styles.body, { color: t.inkSoft }]}>
-          Sign in with the dev identity you used when listing a product (or create one here).
+          Selling is part of your one PayTight account. Sign in, then apply to sell. We approve every seller before they can list.
         </Text>
         <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.line }]}>
-          <TextInput
-            style={[styles.input, { borderColor: t.lineStrong, color: t.ink, marginBottom: 10 }]}
-            value={name}
-            onChangeText={setName}
-            placeholder="Your name"
-            placeholderTextColor={t.muted}
-          />
-          <TextInput
-            style={[styles.input, { borderColor: t.lineStrong, color: t.ink, marginBottom: 14 }]}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Your email"
-            placeholderTextColor={t.muted}
-            autoCapitalize="none"
-          />
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: t.primary }]}
-            disabled={!name || !email}
-            onPress={() => createIdentity({ email, fullName: name })}
-          >
-            <Text style={styles.buttonText}>Continue</Text>
+          <TouchableOpacity style={[styles.button, { backgroundColor: t.primary }]} onPress={() => navigation.navigate(account ? 'SellerApply' : 'SignIn')}>
+            <Text style={styles.buttonText}>{account ? 'Start selling' : 'Sign in'}</Text>
           </TouchableOpacity>
         </View>
       </View>

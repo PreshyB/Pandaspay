@@ -3,12 +3,14 @@ import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 
 import { useTokens } from '../theme/tokens';
 import { api } from '../api/client';
 import { useDevIdentity } from '../lib/useDevIdentity';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation';
 
-export default function SellerNewProductScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, 'SellerNewProduct'>;
+
+export default function SellerNewProductScreen({ navigation }: Props) {
   const t = useTokens();
-  const { user: seller, loading, createIdentity } = useDevIdentity('seller');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const { user: seller, loading } = useDevIdentity('seller');
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -22,11 +24,8 @@ export default function SellerNewProductScreen() {
     setError(null);
     setSubmitting(true);
     try {
-      let sellerId = seller?.id;
-      if (!sellerId) {
-        const created = await createIdentity({ email, fullName: name });
-        sellerId = created.id;
-      }
+      if (!seller) throw new Error('Start selling first.');
+      const sellerId = seller.id;
       const priceMinor = Math.round(Number(price) * 100).toString();
       const product = await api.createProduct({
         sellerId,
@@ -47,6 +46,19 @@ export default function SellerNewProductScreen() {
     }
   }
 
+  if (loading) return null;
+  if (!seller) {
+    return (
+      <View style={[styles.container, { backgroundColor: t.paper }]}>
+        <Text style={[styles.title, { color: t.ink }]}>Start selling first</Text>
+        <Text style={[styles.body, { color: t.inkSoft }]}>Only approved sellers can list products.</Text>
+        <TouchableOpacity style={[styles.button, { backgroundColor: t.primary }]} onPress={() => navigation.navigate('SellerApply')}>
+          <Text style={styles.buttonText}>Start selling</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={{ backgroundColor: t.paper }} contentContainerStyle={styles.container}>
       <Text style={[styles.title, { color: t.ink }]}>List a product</Text>
@@ -55,13 +67,6 @@ export default function SellerNewProductScreen() {
       </Text>
 
       <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.line }]}>
-        {!seller && !loading && (
-          <>
-            <Field label="Your name" value={name} onChangeText={setName} tokens={t} />
-            <Field label="Your email" value={email} onChangeText={setEmail} tokens={t} autoCapitalize="none" />
-          </>
-        )}
-
         <Field label="Product title" value={title} onChangeText={setTitle} tokens={t} placeholder="Ankara fabric, 6 yards" />
         <Field label="Description" value={description} onChangeText={setDescription} tokens={t} multiline />
         <Field label="Price (NGN)" value={price} onChangeText={setPrice} tokens={t} keyboardType="numeric" />
@@ -71,7 +76,7 @@ export default function SellerNewProductScreen() {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: t.primary, opacity: submitting ? 0.6 : 1 }]}
-          disabled={submitting || !title || !price || (!seller && (!name || !email))}
+          disabled={submitting || !title || !price || !seller}
           onPress={handleCreateProduct}
         >
           <Text style={styles.buttonText}>{submitting ? 'Creating…' : 'Create product & get code'}</Text>
