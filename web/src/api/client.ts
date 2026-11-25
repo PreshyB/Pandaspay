@@ -1,24 +1,78 @@
-import type { CreateOrderResponse, Order, Payment, Product } from './types';
+import { authHeaders } from '../lib/session';
+import type { CreateOrderResponse, Dispute, DeliveryOption, DeliverySpeed, DeliveryZone, Order, Payment, Product, SellerDelivery } from './types';
+
+/** Address of a product photo, for use in <img src>. */
+export const imageUrl = (imageId: string) => `${import.meta.env.VITE_API_BASE_URL ?? ''}/api/products/images/${imageId}`;
 
 // Empty in dev (vite.config.ts proxies /api to the backend). Set
 // VITE_API_BASE_URL at build time to point a production build at a
-// deployed backend origin, e.g. https://api.pandaspay.com.
+// deployed backend origin, e.g. https://api.paytight.example.
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api`;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+    let message = body;
+    try {
+      const parsed = JSON.parse(body) as { message?: string | string[] };
+      if (parsed.message) message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message;
+    } catch {
+      /* not JSON: keep the raw text */
+    }
+    throw new Error(message || `${res.status} ${res.statusText}`);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
 export const api = {
+  getSellerDelivery: (sellerId: string) => request<SellerDelivery>(`/delivery/seller/${sellerId}`),
+
+  setStoreLocation: (sellerId: string, storeState: string, storeCity?: string) =>
+    request<unknown>(`/delivery/seller/${sellerId}/location`, {
+      method: 'PATCH',
+      body: JSON.stringify({ storeState, storeCity }),
+    }),
+
+  saveDeliveryOption: (input: {
+    sellerId: string;
+    zone: DeliveryZone;
+    speed: DeliverySpeed;
+    feeMinor: number;
+    minHours: number;
+    maxHours: number;
+  }) => request<DeliveryOption>('/delivery/options', { method: 'POST', body: JSON.stringify(input) }),
+
+  setDeliveryActive: (optionId: string, sellerId: string, isActive: boolean) =>
+    request<DeliveryOption>(`/delivery/options/${optionId}/active?sellerId=${sellerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    }),
+
+  getDisputeForPayment: (paymentId: string) => request<Dispute | null>(`/disputes/by-payment/${paymentId}`),
+  respondToDispute: (id: string, response: string, userId: string) =>
+    request<Dispute>(`/disputes/${id}/respond`, { method: 'POST', body: JSON.stringify({ response, userId }) }),
+
+  listDisputes: () => request<Dispute[]>('/disputes'),
+  getDispute: (id: string) => request<Dispute | null>(`/disputes/${id}`),
+  resolveDispute: (
+    id: string,
+    decision: { kind: 'seller' | 'buyer' } | { kind: 'split'; releaseMinor: string; refundMinor: string },
+    notes: string,
+  ) => {
+    const body: Record<string, unknown> = { resolvedById: 'admin-test', notes };
+    if (decision.kind === 'split') {
+      body.releaseMinor = decision.releaseMinor;
+      body.refundMinor = decision.refundMinor;
+      body.sellerPayoutDestination = { note: 'placeholder: payout destinations are not stored yet' };
+    }
+    return request<Dispute>(`/disputes/${id}/resolve-${decision.kind}`, { method: 'PATCH', body: JSON.stringify(body) });
+  },
+
   getProductBySlug: (slug: string) => request<Product>(`/products/${slug}`),
 
   createProduct: (input: {
@@ -27,12 +81,38 @@ export const api = {
     description?: string;
     priceMinor: string;
     stockQuantity?: number;
+    brand?: string;
+    options?: { name: string; values: string[] }[];
+    skus?: { attributes: Record<string, string>; stockQuantity: number }[];
   }) => request<Product>('/products', { method: 'POST', body: JSON.stringify(input) }),
+
+  listProductsBySeller: (sellerId: string) => request<Product[]>(`/products?sellerId=${encodeURIComponent(sellerId)}`),
+
+  /** Multipart upload: the browser sets the Content-Type (with its boundary), so it is not forced to JSON here. */
+  uploadProductImage: async (productId: string, file: Blob, name = 'photo.jpg') => {
+    const form = new FormData();
+    form.append('file', file, name);
+    const res = await fetch(`${BASE}/products/${productId}/images`, { method: 'POST', headers: { ...authHeaders() }, body: form });
+    if (!res.ok) {
+      let message = 'Could not upload that photo.';
+      try {
+        const parsed = (await res.json()) as { message?: string | string[] };
+        if (parsed.message) message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message;
+      } catch {
+        /* keep the default */
+      }
+      throw new Error(res.status === 413 ? 'That photo is too large.' : message);
+    }
+    return res.json() as Promise<{ id: string }>;
+  },
+  deleteProductImage: (productId: string, imageId: string) => request<unknown>(`/products/${productId}/images/${imageId}`, { method: 'DELETE' }),
+  makeCoverImage: (productId: string, imageId: string) => request<unknown>(`/products/${productId}/images/${imageId}/cover`, { method: 'PATCH' }),
 
   createOrder: (input: {
     buyerId: string;
     sellerId: string;
     items: { productId: string; quantity: number; variant?: Record<string, unknown> }[];
+    deliveryOptionId?: string;
     deliveryAddress?: Record<string, unknown>;
   }) => request<CreateOrderResponse>('/orders', { method: 'POST', body: JSON.stringify(input) }),
 

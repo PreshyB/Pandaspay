@@ -10,6 +10,8 @@ import {
   PaymentProtectionStatus,
 } from '../common/enums/payment-protection-status.enum';
 import { DispositionLockService } from './disposition-lock.service';
+import { FinancialTransactionType } from './financial-transaction.entity';
+import { LedgerService } from './ledger.service';
 import {
   PAYMENT_PROVIDER,
   PaymentProviderService,
@@ -35,6 +37,7 @@ export class PaymentsService {
     @InjectRepository(Settlement) private readonly settlements: Repository<Settlement>,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProviderService,
     private readonly dispositionLock: DispositionLockService,
+    private readonly ledger: LedgerService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -83,11 +86,23 @@ export class PaymentsService {
     }
 
     this.assertTransition(payment.protectionStatus, PaymentProtectionStatus.PROTECTED);
-    const from = payment.protectionStatus;
+    const protectedAt = new Date();
+    // Compare-and-swap: a redelivered or racing webhook that loses does nothing.
+    const won = await this.payments.update(
+      { id: payment.id, protectionStatus: PaymentProtectionStatus.AWAITING_PAYMENT },
+      { protectionStatus: PaymentProtectionStatus.PROTECTED, protectedAt },
+    );
+    if (!won.affected) return this.payments.findOneByOrFail({ id: payment.id });
     payment.protectionStatus = PaymentProtectionStatus.PROTECTED;
-    payment.protectedAt = new Date();
-    await this.payments.save(payment);
-    await this.recordEvent(payment.id, from, payment.protectionStatus, 'PROVIDER_WEBHOOK', webhookEventId, 'Licensed partner confirmed payment received into designated account');
+    payment.protectedAt = protectedAt;
+    await this.recordEvent(payment.id, PaymentProtectionStatus.AWAITING_PAYMENT, PaymentProtectionStatus.PROTECTED, 'PROVIDER_WEBHOOK', webhookEventId, 'Licensed partner confirmed payment received into designated account');
+    await this.ledger.record({
+      paymentId: payment.id,
+      type: FinancialTransactionType.PAYMENT_RECEIVED,
+      amountMinor: payment.amountMinor,
+      currency: payment.currency,
+      reference: `received:${payment.id}`,
+    });
     return payment;
   }
 
@@ -189,11 +204,16 @@ export class PaymentsService {
     if (payment.protectionStatus !== PaymentProtectionStatus.PROTECTED) return payment;
 
     this.assertTransition(payment.protectionStatus, PaymentProtectionStatus.RELEASABLE);
-    const from = payment.protectionStatus;
+    const releasableAt = new Date();
+    // Conditional write: if a dispute or cancellation got there first, this does nothing.
+    const won = await this.payments.update(
+      { id: payment.id, protectionStatus: PaymentProtectionStatus.PROTECTED },
+      { protectionStatus: PaymentProtectionStatus.RELEASABLE, releasableAt },
+    );
+    if (!won.affected) return this.payments.findOneByOrFail({ id: payment.id });
     payment.protectionStatus = PaymentProtectionStatus.RELEASABLE;
-    payment.releasableAt = new Date();
-    await this.payments.save(payment);
-    await this.recordEvent(payment.id, from, payment.protectionStatus, 'SYSTEM_SCHEDULER', undefined, 'Order delivered and protection window elapsed with no open dispute');
+    payment.releasableAt = releasableAt;
+    await this.recordEvent(payment.id, PaymentProtectionStatus.PROTECTED, PaymentProtectionStatus.RELEASABLE, 'SYSTEM_SCHEDULER', undefined, 'Order delivered and protection window elapsed with no open dispute');
     return payment;
   }
 
@@ -231,6 +251,10 @@ export class PaymentsService {
           providerInstructionRef: instructionResult.providerInstructionRef,
         }),
       );
+      await this.ledger.record(
+        { paymentId, type: FinancialTransactionType.PAYOUT_INSTRUCTED, amountMinor: payment.amountMinor, currency: payment.currency, reference: idempotencyKey },
+        manager,
+      );
 
       await manager.getRepository(PaymentEvent).save(
         manager.getRepository(PaymentEvent).create({
@@ -251,10 +275,13 @@ export class PaymentsService {
     const payment = await this.payments.findOneByOrFail({ id: paymentId });
     if (payment.protectionStatus !== PaymentProtectionStatus.REFUND_APPROVED) return payment;
 
-    const from = payment.protectionStatus;
+    const won = await this.payments.update(
+      { id: payment.id, protectionStatus: PaymentProtectionStatus.REFUND_APPROVED },
+      { protectionStatus: PaymentProtectionStatus.REFUNDED },
+    );
+    if (!won.affected) return this.payments.findOneByOrFail({ id: payment.id });
     payment.protectionStatus = PaymentProtectionStatus.REFUNDED;
-    await this.payments.save(payment);
-    await this.recordEvent(payment.id, from, payment.protectionStatus, 'PROVIDER_WEBHOOK', webhookEventId, 'Licensed partner confirmed the refund instruction executed');
+    await this.recordEvent(payment.id, PaymentProtectionStatus.REFUND_APPROVED, PaymentProtectionStatus.REFUNDED, 'PROVIDER_WEBHOOK', webhookEventId, 'Licensed partner confirmed the refund instruction executed');
     return payment;
   }
 
@@ -271,29 +298,45 @@ export class PaymentsService {
       );
     }
     this.assertTransition(payment.protectionStatus, PaymentProtectionStatus.REFUND_APPROVED);
-    const from = payment.protectionStatus;
-    payment.protectionStatus = PaymentProtectionStatus.REFUND_APPROVED;
-    await this.payments.save(payment);
-    await this.recordEvent(payment.id, from, payment.protectionStatus, actorType, actorRef, 'Pre-acceptance cancellation; refund approved');
 
-    const idempotencyKey = `refund:${paymentId}:REFUND_APPROVED`;
-    const instructionResult = await this.provider.sendRefundInstruction({
-      idempotencyKey,
-      paymentProviderTransactionRef: payment.providerTransactionRef ?? payment.id,
-      amountMinor: payment.amountMinor,
-      currency: payment.currency,
-    });
-    await this.settlements.save(
-      this.settlements.create({
-        paymentId,
-        kind: SettlementKind.REFUND,
-        amountMinor: payment.amountMinor,
+    // The status change, the refund record and the ledger entry commit together, under the disposition
+    // lock. A concurrent release, dispute or second cancellation loses the race and sends nothing.
+    await this.dataSource.transaction(async (manager) => {
+      await this.dispositionLock.acquire(manager, paymentId, PaymentProtectionStatus.PROTECTED, PaymentProtectionStatus.REFUND_APPROVED);
+
+      const idempotencyKey = `refund:${paymentId}:REFUND_APPROVED`;
+      const instructionResult = await this.provider.sendRefundInstruction({
         idempotencyKey,
-        providerInstructionRef: instructionResult.providerInstructionRef,
-      }),
-    );
+        paymentProviderTransactionRef: payment.providerTransactionRef ?? payment.id,
+        amountMinor: payment.amountMinor,
+        currency: payment.currency,
+      });
+      await manager.getRepository(Settlement).save(
+        manager.getRepository(Settlement).create({
+          paymentId,
+          kind: SettlementKind.REFUND,
+          amountMinor: payment.amountMinor,
+          idempotencyKey,
+          providerInstructionRef: instructionResult.providerInstructionRef,
+        }),
+      );
+      await this.ledger.record(
+        { paymentId, type: FinancialTransactionType.REFUND_INSTRUCTED, amountMinor: payment.amountMinor, currency: payment.currency, reference: idempotencyKey },
+        manager,
+      );
+      await manager.getRepository(PaymentEvent).save(
+        manager.getRepository(PaymentEvent).create({
+          paymentId,
+          fromStatus: PaymentProtectionStatus.PROTECTED,
+          toStatus: PaymentProtectionStatus.REFUND_APPROVED,
+          actorType,
+          actorRef,
+          reason: 'Pre-acceptance cancellation; refund approved',
+        }),
+      );
+    });
 
-    return payment;
+    return this.payments.findOneByOrFail({ id: paymentId });
   }
 
   private assertTransition(from: PaymentProtectionStatus, to: PaymentProtectionStatus) {

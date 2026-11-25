@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Pandas Pay",
-    "slug": "pandaspay",
-    "version": "0.1.0",
+    "name": "PayTight",
+    "slug": "paytight",
+    "version": "0.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "splash": {
@@ -10,16 +10,19 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pandaspay.app"
+      "bundleIdentifier": "com.paytight.app"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#F7F5FB"
       },
-      "package": "com.pandaspay.app"
+      "package": "com.paytight.app"
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:3000"
-    }
+      "apiBaseUrl": ""
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
   }
 }
