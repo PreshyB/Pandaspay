@@ -20,6 +20,9 @@
     },
     "extra": {
       "apiBaseUrl": ""
-    }
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
   }
 }
